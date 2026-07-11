@@ -5,7 +5,7 @@ from sqlalchemy import asc, desc, func, or_, select
 from sqlalchemy.orm import Session
 from app.models.package import Package
 
-SORTABLE_FIELDS = {"document_number","document_date","document_type","initiator","discipline","number_of_documents","transmittal_number","workflow_number","workflow_terminated","is_abandoned","has_attachment","order_index","created_at","updated_at"}
+SORTABLE_FIELDS = {"document_number","document_title","document_date","document_type","initiator","discipline","number_of_documents","transmittal_number","workflow_number","workflow_terminated","is_abandoned","has_attachment","order_index","created_at","updated_at"}
 
 def period_bounds(period: str, today: date | None = None) -> tuple[date, date]:
     """Return an inclusive start and exclusive end for the current calendar period."""
@@ -30,7 +30,7 @@ class PackageRepository:
             query = query.where(Package.document_date >= start, Package.document_date < end)
         if search:
             term = f"%{search}%"
-            query = query.where(or_(Package.document_number.like(term), Package.workflow_number.like(term), Package.transmittal_number.like(term), Package.initiator.like(term), Package.discipline.like(term)))
+            query = query.where(or_(Package.document_number.like(term), Package.document_title.like(term), Package.workflow_number.like(term), Package.transmittal_number.like(term), Package.initiator.like(term), Package.discipline.like(term)))
         if discipline: query = query.where(Package.discipline == discipline)
         if document_type: query = query.where(Package.document_type == document_type)
         count = self.db.scalar(select(func.count()).select_from(query.subquery())) or 0

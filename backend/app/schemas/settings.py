@@ -4,7 +4,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from app.schemas.package import PackageCreate
 
 CONFIGURABLE_FIELDS = {
-    "document_number", "document_date", "document_type", "initiator", "discipline",
+    "document_number", "document_title", "document_date", "document_type", "initiator", "discipline",
     "number_of_documents", "transmittal_number", "workflow_number",
 }
 
@@ -73,6 +73,7 @@ class MetadataImportResult(BaseModel):
 
 class CsvImportRow(BaseModel):
     document_number: str | None = Field(default=None, max_length=80)
+    document_title: str | None = Field(default=None, max_length=255)
     document_date: date | None = None
     document_type: str | None = Field(default=None, max_length=80)
     initiator: str | None = Field(default=None, max_length=120)
@@ -86,7 +87,7 @@ class CsvImportRow(BaseModel):
     notes: str | None = Field(default=None, max_length=5000)
 
     @field_validator(
-        "document_number", "document_type", "initiator", "discipline",
+        "document_number", "document_title", "document_type", "initiator", "discipline",
         "transmittal_number", "workflow_number", "notes",
         mode="before",
     )

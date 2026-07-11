@@ -8,13 +8,14 @@ const emptyProgress = Object.fromEntries(submissionSteps.map(s => [s, false])) a
 const emptyFeedback = {...Object.fromEntries(feedbackSteps.map(s => [s, false])),Terminate:false} as PackageInput['feedback']
 const today = () => new Date().toISOString().slice(0, 10)
 const blank: PackageInput = {
-  document_number: '', document_date: today(), document_type: 'Drawing', initiator: '', discipline: '', number_of_documents: 1,
+  document_number: '', document_title: '', document_date: today(), document_type: 'Drawing', initiator: '', discipline: '', number_of_documents: 1,
   transmittal_number: '', workflow_number: '', workflow_terminated:false, notes:'', has_attachment:false, is_abandoned:false,
   submission_progress: emptyProgress, feedback: emptyFeedback, feedback_status:{UTIBER:'P',GDS:'P'}, order_index: 0,
 }
 type BaseField = ColumnConfig['field_name']
 const fields: Array<{ name: BaseField; label: string; placeholder?: string }> = [
   {name:'document_number',label:'Document number',placeholder:'Auto-generated if left blank'},
+  {name:'document_title',label:'Document title',placeholder:'Enter document title'},
   {name:'document_date',label:'Date'},
   {name:'document_type',label:'Document type'},
   {name:'initiator',label:'Initiator',placeholder:'Full name'},
@@ -33,7 +34,7 @@ export function PackageEditor({ item, configs, workflowConfig, open, saving, onC
   const configMap = useMemo(() => Object.fromEntries(configs.map(c => [c.field_name,c])) as Partial<Record<BaseField,ColumnConfig>>, [configs])
   useEffect(() => {
     if (open) setForm(item ? {
-      document_number:item.document_number, document_date:item.document_date, document_type:item.document_type, initiator:item.initiator,
+      document_number:item.document_number, document_title:item.document_title, document_date:item.document_date, document_type:item.document_type, initiator:item.initiator,
       discipline:item.discipline, number_of_documents:item.number_of_documents, transmittal_number:item.transmittal_number,
       workflow_terminated:item.workflow_terminated, notes:item.notes, has_attachment:item.has_attachment, is_abandoned:item.is_abandoned,
       workflow_number:item.workflow_number, submission_progress:{...item.submission_progress}, feedback:{...item.feedback}, feedback_status:{...item.feedback_status}, order_index:item.order_index,

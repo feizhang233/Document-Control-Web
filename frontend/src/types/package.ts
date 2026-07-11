@@ -12,6 +12,7 @@ export type FeedbackStatusCode = keyof typeof feedbackStatusLabels
 export interface Package {
   id: number
   document_number: string
+  document_title: string
   document_date: string
   document_type: string
   initiator: string
@@ -43,12 +44,12 @@ export interface PackageListResponse {
 export type Period = 'week' | 'month' | 'year' | 'all'
 export type PageKind = 'documents' | 'workflow' | 'transmittal'
 
-export type FilterField = 'document_number'|'document_date'|'document_type'|'initiator'|'discipline'|'number_of_documents'|'transmittal_number'|'workflow_number'|'submission_progress'|'feedback'|'has_attachment'|'is_abandoned'|'workflow_terminated'
+export type FilterField = 'document_number'|'document_title'|'document_date'|'document_type'|'initiator'|'discipline'|'number_of_documents'|'transmittal_number'|'workflow_number'|'submission_progress'|'feedback'|'has_attachment'|'is_abandoned'|'workflow_terminated'
 export interface FilterRule { id: string; field: FilterField; operator: 'contains'|'equals'|'not_equals'; value: string }
 
 export interface ColumnConfig {
   id: number
-  field_name: keyof Pick<Package, 'document_number'|'document_date'|'document_type'|'initiator'|'discipline'|'number_of_documents'|'transmittal_number'|'workflow_number'>
+  field_name: keyof Pick<Package, 'document_number'|'document_title'|'document_date'|'document_type'|'initiator'|'discipline'|'number_of_documents'|'transmittal_number'|'workflow_number'>
   display_name: string
   input_type: 'text' | 'select'
   options: string[]
@@ -65,6 +66,7 @@ export interface MetadataBackup {
 
 export interface CsvImportRow {
   document_number?: string
+  document_title?: string
   document_date?: string
   document_type?: string
   initiator?: string

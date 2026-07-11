@@ -3,7 +3,7 @@ import { useState } from 'react'
 import type { FilterField, FilterRule } from '../../types/package'
 
 const columns:Array<[FilterField,string]>=[
-  ['document_number','Document Number'],['document_date','Date'],['document_type','Document Type'],['initiator','Initiator'],
+  ['document_number','Document Number'],['document_title','Document Title'],['document_date','Date'],['document_type','Document Type'],['initiator','Initiator'],
   ['discipline','Discipline'],['number_of_documents','Number of Documents'],['transmittal_number','Transmittal Number'],
   ['workflow_number','Workflow Number'],['submission_progress','Submission Progress %'],
   ['feedback','Feedback %'],['has_attachment','Has Attachment'],['is_abandoned','Abandoned'],['workflow_terminated','Terminate Workflow'],

@@ -9,6 +9,7 @@ class Package(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     # Not unique: the same document number can appear as multiple revisions / submissions.
     document_number: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    document_title: Mapped[str] = mapped_column(String(255), default="", nullable=False)
     document_date: Mapped[date] = mapped_column(Date, nullable=False, server_default=func.current_date())
     document_type: Mapped[str] = mapped_column(String(80), nullable=False)
     initiator: Mapped[str] = mapped_column(String(120), nullable=False)

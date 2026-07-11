@@ -11,15 +11,16 @@ def test_calendar_period_bounds():
     assert period_bounds("year", date(2024, 7, 1)) == (date(2024, 1, 1), date(2025, 1, 1))
 
 def payload(number="DOC-CIV-001"):
-    return {"document_number":number,"document_date":"2026-07-11","document_type":"Drawing","initiator":"Ana Petrović","discipline":"Civil","number_of_documents":4,"transmittal_number":"TR-001","workflow_number":"WF-001","submission_progress":{s:False for s in SUBMISSION_STEPS},"feedback":{s:False for s in FEEDBACK_STEPS},"order_index":0}
+    return {"document_number":number,"document_title":"Foundation layout","document_date":"2026-07-11","document_type":"Drawing","initiator":"Ana Petrović","discipline":"Civil","number_of_documents":4,"transmittal_number":"TR-001","workflow_number":"WF-001","submission_progress":{s:False for s in SUBMISSION_STEPS},"feedback":{s:False for s in FEEDBACK_STEPS},"order_index":0}
 
 def test_package_crud(client):
     created=client.post("/api/packages",json=payload()).json()
     assert created["document_number"]=="DOC-CIV-001"
+    assert created["document_title"] == "Foundation layout"
     assert created["document_date"]=="2026-07-11"
     assert set(created["feedback"]) == {"UTIBER", "GDS", "Terminate"}
     assert created["feedback_status"] == {"UTIBER":"P", "GDS":"P"}
-    response=client.get("/api/packages",params={"period":"all","search":"Ana"})
+    response=client.get("/api/packages",params={"period":"all","search":"Foundation layout"})
     assert response.status_code==200 and response.json()["total"]==1
     updated=client.patch(f"/api/packages/{created['id']}",json={"number_of_documents":9})
     assert updated.json()["number_of_documents"]==9
@@ -71,7 +72,7 @@ def test_csv_import_appends_and_replaces_documents(client):
     original = client.post("/api/packages", json=payload()).json()
     merged = client.post("/api/metadata/import-csv?mode=merge", json={"rows":[
         {"document_number":"DOC-CIV-001","initiator":"CSV owner","has_attachment":True},
-        {"document_number":"DOC-CSV-002","document_date":"2026-07-12","document_type":"Drawing","discipline":"Civil","number_of_documents":2,"notes":"Imported from CSV"},
+        {"document_number":"DOC-CSV-002","document_title":"CSV title","document_date":"2026-07-12","document_type":"Drawing","discipline":"Civil","number_of_documents":2,"notes":"Imported from CSV"},
     ]})
     assert merged.status_code == 200, merged.text
     assert merged.json()["packages_created"] == 2 and merged.json()["packages_updated"] == 0
@@ -80,6 +81,7 @@ def test_csv_import_appends_and_replaces_documents(client):
     assert original_after["initiator"] == "Ana Petrović"
     assert client.get("/api/packages", params={"period":"all"}).json()["total"] == 3
     imported = client.get("/api/packages", params={"period":"all","search":"DOC-CSV-002"}).json()["items"][0]
+    assert imported["document_title"] == "CSV title"
     assert imported["notes"] == "Imported from CSV" and not any(imported["submission_progress"].values())
     replaced = client.post("/api/metadata/import-csv?mode=replace", json={"rows":[{"document_number":"DOC-REPLACED","number_of_documents":1}]})
     assert replaced.status_code == 200 and replaced.json()["packages_created"] == 1

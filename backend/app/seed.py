@@ -16,6 +16,6 @@ def seed():
         now=datetime.now(timezone.utc).replace(tzinfo=None)
         for i in range(12):
             created = now-timedelta(days=[0,1,2,4,6,9,15,24,40,90,180,300][i])
-            db.add(Package(document_number=f"DOC-{DISCIPLINES[i%6][:3].upper()}-2026-{i+1:03d}",document_date=created.date(),document_type=TYPES[i%5],initiator=NAMES[i%8],discipline=DISCIPLINES[i%6],number_of_documents=(i*3)%17+2,transmittal_number=f"TR-2026-{140+i:04d}" if i!=2 else None,workflow_number=f"WF-2026-{80+i:04d}" if i!=4 else None,submission_progress=flags(SUBMISSION_STEPS,(i*2+2)%7),feedback=flags(FEEDBACK_STEPS,i%3),order_index=i,created_at=created))
+            db.add(Package(document_number=f"DOC-{DISCIPLINES[i%6][:3].upper()}-2026-{i+1:03d}",document_title=f"{DISCIPLINES[i%6]} document {i+1}",document_date=created.date(),document_type=TYPES[i%5],initiator=NAMES[i%8],discipline=DISCIPLINES[i%6],number_of_documents=(i*3)%17+2,transmittal_number=f"TR-2026-{140+i:04d}" if i!=2 else None,workflow_number=f"WF-2026-{80+i:04d}" if i!=4 else None,submission_progress=flags(SUBMISSION_STEPS,(i*2+2)%7),feedback=flags(FEEDBACK_STEPS,i%3),order_index=i,created_at=created))
         db.commit()
 if __name__ == "__main__": seed()

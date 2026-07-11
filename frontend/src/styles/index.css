@@ -47,3 +47,4 @@
 .settings-panel .type-toggle button,.settings-panel .option-chips>span,.settings-panel .option-input input{font-size:11px}
 .settings-panel .config-note{margin-top:10px;padding:10px 13px}
 .settings-panel .config-note strong,.settings-panel .config-note span{font-size:12px}
+.document-title-cell{min-width:190px;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#30415e;font-weight:500}

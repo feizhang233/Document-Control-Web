@@ -7,6 +7,7 @@ FEEDBACK_STATUS_VALUES = {"A", "B", "C", "P"}
 
 class PackageBase(BaseModel):
     document_number: str = Field(default="", max_length=80)
+    document_title: str = Field(default="", max_length=255)
     document_date: date = Field(default_factory=date.today)
     document_type: str = Field(default="", max_length=80)
     initiator: str = Field(default="", max_length=120)
@@ -44,6 +45,7 @@ class PackageBase(BaseModel):
 class PackageCreate(PackageBase): pass
 class PackageUpdate(BaseModel):
     document_number: str | None = Field(default=None, max_length=80)
+    document_title: str | None = Field(default=None, max_length=255)
     document_date: date | None = None
     document_type: str | None = Field(default=None, max_length=80)
     initiator: str | None = Field(default=None, max_length=120)
