@@ -14,8 +14,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 20
-    ports:
-      - "3306:3306"
+    # Not exposed publicly; backend reaches db on the compose network only.
 
   backend:
     build: ./backend
@@ -28,8 +27,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    ports:
-      - "8000:8000"
+    # API is only reached via frontend nginx reverse_proxy (/api).
 
   frontend:
     build:
@@ -40,7 +38,8 @@ services:
     depends_on:
       - backend
     ports:
-      - "80:80"
+      # Former SillyTavern port; Cloudflare Tunnel points here.
+      - "127.0.0.1:8000:80"
 
 volumes:
   mysql_data:

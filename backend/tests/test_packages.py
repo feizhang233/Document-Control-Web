@@ -70,6 +70,13 @@ def test_column_config_and_metadata_backup(client):
     assert layout.status_code == 200
     assert layout.json()["display_name"] == "Trade"
     assert layout.json()["is_visible"] is False and layout.json()["column_width"] == 180
+    # Column drag can submit fractional widths; API must round instead of 422.
+    fractional = client.put("/api/settings/columns/discipline", json={
+        "display_name":"Trade", "is_visible":False, "column_width":183.5,
+        "input_type":"select", "options":["Civil","Rail"],
+    })
+    assert fractional.status_code == 200, fractional.text
+    assert fractional.json()["column_width"] == 184
     reset = client.post("/api/settings/columns/reset")
     assert reset.status_code == 200 and len(reset.json()) == 11
     discipline = next(item for item in reset.json() if item["field_name"] == "discipline")

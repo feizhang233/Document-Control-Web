@@ -18,9 +18,11 @@ function Header({ label, field, config, sortBy, sortOrder, onSort, onResize }: {
     event.preventDefault();event.stopPropagation()
     const startX=event.clientX,startWidth=config.column_width
     let width=startWidth
+    const clampWidth=(value:number)=>Math.min(500,Math.max(72,Math.round(value)))
     document.body.classList.add('resizing-column')
-    const move=(moveEvent:PointerEvent)=>{width=Math.min(500,Math.max(72,startWidth+moveEvent.clientX-startX));onResize(config.field_name,width)}
-    const end=()=>{onResize(config.field_name,width,true);document.body.classList.remove('resizing-column');window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',end)}
+    // API requires integer column_width; mouse deltas are often fractional (e.g. 183.5 → 422).
+    const move=(moveEvent:PointerEvent)=>{width=clampWidth(startWidth+moveEvent.clientX-startX);onResize(config.field_name,width)}
+    const end=()=>{onResize(config.field_name,clampWidth(width),true);document.body.classList.remove('resizing-column');window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',end)}
     window.addEventListener('pointermove',move);window.addEventListener('pointerup',end,{once:true})
   }
   return <th style={styleFor(config)}>{field ? <button className="sort-button" onClick={() => onSort(field)}>{label}{sortBy === field ? (sortOrder === 'asc' ? <ArrowUp/> : <ArrowDown/>) : <ArrowUpDown/>}</button> : label}{config&&onResize&&<span className="column-resize-handle" role="separator" aria-label={`Resize ${label}`} onPointerDown={beginResize}/>}</th>

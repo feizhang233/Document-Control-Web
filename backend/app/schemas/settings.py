@@ -56,6 +56,17 @@ class ColumnConfigUpdate(BaseModel):
     input_type: Literal["text", "select"]
     options: list[str] = Field(default_factory=list, max_length=100)
     option_colors: dict[str,str] = Field(default_factory=dict)
+    @field_validator("column_width", mode="before")
+    @classmethod
+    def coerce_column_width(cls, value):
+        # Mouse-drag resize often yields floats (183.5); accept and round to int.
+        if value is None or isinstance(value, bool):
+            return value
+        if isinstance(value, (int, float)):
+            return int(round(value))
+        if isinstance(value, str) and value.strip():
+            return int(round(float(value)))
+        return value
     @field_validator("options")
     @classmethod
     def clean_options(cls, value: list[str]):

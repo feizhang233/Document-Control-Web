@@ -43,7 +43,28 @@ export function PackagesPage({ kind }: { kind: PageKind }) {
   const quickUpdate = useMutation({mutationFn:({id,data}:{id:number;data:Partial<PackageInput>})=>packagesApi.update(id,data),onSuccess:updated=>{if(selected?.id===updated.id)setSelected(updated);refresh();queryClient.invalidateQueries({queryKey:['notifications']})},onError:e=>toast.error(getApiError(e))})
   const duplicate = useMutation({mutationFn:(item:Package)=>packagesApi.duplicate(item.id),onSuccess:item=>{toast.success(`Duplicated as ${item.document_number}`);refresh()},onError:e=>toast.error(getApiError(e))})
   const remove = useMutation({mutationFn:(item:Package)=>packagesApi.remove(item.id),onSuccess:(_result,item)=>{toast.success(`${item.document_number} deleted permanently`);if(selected?.id===item.id)setSelected(null);refresh();queryClient.invalidateQueries({queryKey:['notifications']})},onError:e=>toast.error(getApiError(e))})
-  const resizeColumn = useMutation({mutationFn:({config,width}:{config:NonNullable<typeof configs.data>[number];width:number})=>settingsApi.updateColumn(config.field_name,{...config,column_width:width}),onMutate:async({config,width})=>{await queryClient.cancelQueries({queryKey:['column-configs']});const previous=queryClient.getQueryData<typeof configs.data>(['column-configs']);queryClient.setQueryData<typeof configs.data>(['column-configs'],items=>items?.map(item=>item.field_name===config.field_name?{...item,column_width:width}:item));return{previous}},onError:(_error,_variables,context)=>{if(context?.previous)queryClient.setQueryData(['column-configs'],context.previous);toast.error('Could not save column width')},onSettled:()=>queryClient.invalidateQueries({queryKey:['column-configs']})})
+  const resizeColumn = useMutation({
+    mutationFn:({config,width}:{config:NonNullable<typeof configs.data>[number];width:number})=>settingsApi.updateColumn(config.field_name,{
+      display_name:config.display_name,
+      is_visible:config.is_visible,
+      column_width:Math.round(width),
+      input_type:config.input_type,
+      options:config.options,
+      option_colors:config.option_colors,
+    }),
+    onMutate:async({config,width})=>{
+      await queryClient.cancelQueries({queryKey:['column-configs']})
+      const previous=queryClient.getQueryData<typeof configs.data>(['column-configs'])
+      const nextWidth=Math.round(width)
+      queryClient.setQueryData<typeof configs.data>(['column-configs'],items=>items?.map(item=>item.field_name===config.field_name?{...item,column_width:nextWidth}:item))
+      return{previous}
+    },
+    onError:(error,_variables,context)=>{
+      if(context?.previous)queryClient.setQueryData(['column-configs'],context.previous)
+      toast.error(getApiError(error) || 'Could not save column width')
+    },
+    onSettled:()=>queryClient.invalidateQueries({queryKey:['column-configs']}),
+  })
   const titlePeriod = period === 'week' ? 'This week' : period === 'month' ? 'This month' : period === 'year' ? 'This year' : 'All records'
   const disciplines = useMemo(() => ['Civil','Structural','Architectural','Electrical','Mechanical','Geotechnical'], [])
   const visibleItems=useMemo(()=>{
