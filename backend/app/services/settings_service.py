@@ -13,17 +13,49 @@ DEFAULT_WORKFLOW = {
     "feedback_status_labels":{"A":"Approved","B":"Approved with comments","C":"Rejected","P":"Pending"},
 }
 
+DEFAULT_COLUMN_CONFIGS = {
+    "document_number": ("Document Number", 165, "text", []),
+    "document_title": ("Document Title", 220, "text", []),
+    "document_date": ("Date", 110, "text", []),
+    "document_type": ("Document Type", 135, "select", ["Drawing", "Technical Report", "Method Statement", "Specification", "Calculation"]),
+    "initiator": ("Initiator", 135, "text", []),
+    "discipline": ("Discipline", 110, "select", ["Civil", "Structural", "Architectural", "Electrical", "Mechanical", "Geotechnical"]),
+    "number_of_documents": ("Docs", 72, "text", []),
+    "transmittal_number": ("Transmittal No.", 165, "text", []),
+    "workflow_number": ("Workflow No.", 135, "text", []),
+    "submission_progress": ("Submission Progress", 180, "text", []),
+    "feedback": ("Feedback", 220, "text", []),
+}
+
 class SettingsService:
     def __init__(self, db: Session): self.db = db
     def list_configs(self):
-        return list(self.db.scalars(select(ColumnConfig).order_by(ColumnConfig.id)))
+        items = list(self.db.scalars(select(ColumnConfig)))
+        order = {field_name:index for index,field_name in enumerate(DEFAULT_COLUMN_CONFIGS)}
+        return sorted(items, key=lambda item:(order.get(item.field_name, len(order)), item.id))
     def update_config(self, field_name: str, data: ColumnConfigUpdate):
         if field_name not in CONFIGURABLE_FIELDS: return None
         item = self.db.scalar(select(ColumnConfig).where(ColumnConfig.field_name == field_name))
         if not item: return None
+        if data.display_name is not None: item.display_name = data.display_name
+        if data.is_visible is not None: item.is_visible = data.is_visible
+        if data.column_width is not None: item.column_width = data.column_width
         item.input_type = data.input_type
         item.options = data.options if data.input_type == "select" else []
         self.db.commit(); self.db.refresh(item); return item
+    def reset_configs(self):
+        existing = {item.field_name:item for item in self.db.scalars(select(ColumnConfig))}
+        for field_name, (display_name, width, input_type, options) in DEFAULT_COLUMN_CONFIGS.items():
+            item = existing.get(field_name)
+            if not item:
+                item = ColumnConfig(field_name=field_name); self.db.add(item)
+            item.display_name = display_name
+            item.is_visible = True
+            item.column_width = width
+            item.input_type = input_type
+            item.options = options
+        self.db.commit()
+        return self.list_configs()
     def get_workflow_config(self):
         item = self.db.get(WorkflowConfig, 1)
         if not item:
@@ -71,6 +103,9 @@ class SettingsService:
             if incoming.field_name not in CONFIGURABLE_FIELDS: continue
             config = self.db.scalar(select(ColumnConfig).where(ColumnConfig.field_name == incoming.field_name))
             if config:
+                config.display_name = incoming.display_name
+                config.is_visible = incoming.is_visible
+                config.column_width = incoming.column_width
                 config.input_type = incoming.input_type
                 config.options = incoming.options if incoming.input_type == "select" else []
                 configs_updated += 1

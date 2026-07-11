@@ -49,12 +49,17 @@ export interface FilterRule { id: string; field: FilterField; operator: 'contain
 
 export interface ColumnConfig {
   id: number
-  field_name: keyof Pick<Package, 'document_number'|'document_title'|'document_date'|'document_type'|'initiator'|'discipline'|'number_of_documents'|'transmittal_number'|'workflow_number'>
+  field_name: ColumnField
   display_name: string
+  is_visible: boolean
+  column_width: number
   input_type: 'text' | 'select'
   options: string[]
   updated_at: string
 }
+
+export type InputColumnField = keyof Pick<Package, 'document_number'|'document_title'|'document_date'|'document_type'|'initiator'|'discipline'|'number_of_documents'|'transmittal_number'|'workflow_number'>
+export type ColumnField = InputColumnField | 'submission_progress' | 'feedback'
 
 export interface MetadataBackup {
   format_version: '1.0'

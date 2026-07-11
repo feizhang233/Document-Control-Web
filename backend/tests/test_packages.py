@@ -63,6 +63,18 @@ def test_column_config_and_metadata_backup(client):
         db.add(ColumnConfig(field_name="discipline", display_name="Discipline", input_type="text", options=[])); db.commit()
     changed = client.put("/api/settings/columns/discipline", json={"input_type":"select","options":["Civil","Civil","Rail"]})
     assert changed.status_code == 200 and changed.json()["options"] == ["Civil","Rail"]
+    layout = client.put("/api/settings/columns/discipline", json={
+        "display_name":"Trade", "is_visible":False, "column_width":180,
+        "input_type":"select", "options":["Civil","Rail"],
+    })
+    assert layout.status_code == 200
+    assert layout.json()["display_name"] == "Trade"
+    assert layout.json()["is_visible"] is False and layout.json()["column_width"] == 180
+    reset = client.post("/api/settings/columns/reset")
+    assert reset.status_code == 200 and len(reset.json()) == 11
+    discipline = next(item for item in reset.json() if item["field_name"] == "discipline")
+    assert discipline["display_name"] == "Discipline"
+    assert discipline["is_visible"] is True and discipline["column_width"] == 110
     backup = client.get("/api/metadata/export")
     assert backup.status_code == 200 and backup.json()["packages"][0]["document_number"] == "DOC-CIV-001"
     result = client.post("/api/metadata/import?mode=replace", json=backup.json())

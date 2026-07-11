@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowDown, ArrowUp, Check, Download, FileJson, FileSpreadsheet, ListFilter, LoaderCircle, Plus, Save, Upload, Workflow, X } from 'lucide-react'
+import { ArrowDown, ArrowUp, Check, Download, FileJson, FileSpreadsheet, ListFilter, LoaderCircle, Plus, RotateCcw, Save, Upload, Workflow, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { getApiError, metadataApi, packagesApi, settingsApi } from '../lib/api'
 import type { ColumnConfig, CsvImportRow, FeedbackStatusCode, MetadataBackup, WorkflowConfig } from '../types/package'
@@ -19,6 +19,7 @@ export function SettingsPage() {
   const [csvMode,setCsvMode]=useState<ImportMode>('merge')
   const configs=useQuery({queryKey:['column-configs'],queryFn:settingsApi.listColumns})
   const workflowConfig=useQuery({queryKey:['workflow-config'],queryFn:settingsApi.getWorkflow})
+  const resetColumns=useMutation({mutationFn:settingsApi.resetColumns,onSuccess:()=>{toast.success('Column settings reset to defaults');queryClient.invalidateQueries({queryKey:['column-configs']})},onError:e=>toast.error(getApiError(e))})
   const exportMutation=useMutation({mutationFn:metadataApi.export,onSuccess:data=>{
     const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a')
     a.href=url;a.download=`docflow-metadata-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(url);toast.success('Metadata backup exported')
@@ -59,10 +60,10 @@ export function SettingsPage() {
       <section className="settings-panel wide"><div className="settings-heading icon-heading"><span><Workflow/></span><div><h2>Workflow structure</h2><p>Edit the six Submission Progress stages, their order, the two Feedback reviewers and status labels.</p></div></div>
         {workflowConfig.isLoading?<div className="config-loading"><LoaderCircle className="spin"/> Loading workflow settings…</div>:workflowConfig.data?<WorkflowConfigEditor config={workflowConfig.data} onSaved={()=>{queryClient.invalidateQueries({queryKey:['workflow-config']});queryClient.invalidateQueries({queryKey:['packages']});queryClient.invalidateQueries({queryKey:['dashboard-packages']})}}/>:<div className="config-note"><strong>Workflow settings unavailable</strong><span>{workflowConfig.error?getApiError(workflowConfig.error):'Please refresh and try again.'}</span></div>}
       </section>
-      <section className="settings-panel wide"><div className="settings-heading icon-heading"><span><ListFilter/></span><div><h2>Column input design</h2><p>Choose whether each basic-information field is free text or a controlled dropdown, then define its available options.</p></div></div>
-        <div className="config-table-head"><span>Column</span><span>Input type</span><span>Dropdown options</span><span/></div>
+      <section className="settings-panel wide"><div className="settings-heading icon-heading column-settings-heading"><span><ListFilter/></span><div><h2>Column design</h2><p>Edit column names, visibility, width and input behaviour. Changes apply to the Documents register immediately.</p></div><div className="column-settings-actions"><small>{configs.data?.filter(item=>item.is_visible).length||0} of {configs.data?.length||0} visible</small><button className="secondary-button" disabled={resetColumns.isPending} onClick={()=>{if(window.confirm('Reset all column names, widths, visibility and input settings?'))resetColumns.mutate()}}>{resetColumns.isPending?<LoaderCircle className="spin"/>:<RotateCcw/>} Reset</button></div></div>
+        <div className="config-table-head"><span>Column</span><span>Display name</span><span>Visible</span><span>Width</span><span>Input type</span><span>Dropdown options</span><span/></div>
         <div className="config-list">{configs.isLoading?<div className="config-loading"><LoaderCircle className="spin"/> Loading field settings…</div>:configs.data?.map(config=><ColumnConfigRow key={config.field_name} config={config} onSaved={()=>queryClient.invalidateQueries({queryKey:['column-configs']})}/>)}</div>
-        <div className="config-note"><strong>How this works</strong><span>Changes apply to the create and edit form immediately. Existing metadata remains unchanged even if an option is removed.</span></div>
+        <div className="config-note"><strong>How this works</strong><span>Width accepts 72–500 pixels. Hiding a column does not delete its data. Input type only affects editable metadata fields; progress columns remain read-only.</span></div>
       </section>
     </div>
   </>
@@ -159,11 +160,15 @@ function WorkflowConfigEditor({config,onSaved}:{config:WorkflowConfig;onSaved:()
 }
 
 function ColumnConfigRow({config,onSaved}:{config:ColumnConfig;onSaved:()=>void}){
+  const [name,setName]=useState(config.display_name)
+  const [visible,setVisible]=useState(config.is_visible)
+  const [width,setWidth]=useState(config.column_width)
   const [type,setType]=useState(config.input_type)
   const [options,setOptions]=useState(config.options)
   const [draft,setDraft]=useState('')
-  useEffect(()=>{setType(config.input_type);setOptions(config.options)},[config])
-  const save=useMutation({mutationFn:()=>settingsApi.updateColumn(config.field_name,{input_type:type,options}),onSuccess:()=>{toast.success(`${config.display_name} input updated`);onSaved()},onError:e=>toast.error(getApiError(e))})
+  const inputEditable=!['submission_progress','feedback'].includes(config.field_name)
+  useEffect(()=>{setName(config.display_name);setVisible(config.is_visible);setWidth(config.column_width);setType(config.input_type);setOptions(config.options)},[config])
+  const save=useMutation({mutationFn:()=>settingsApi.updateColumn(config.field_name,{display_name:name.trim(),is_visible:visible,column_width:width,input_type:type,options}),onSuccess:()=>{toast.success(`${name.trim()} column updated`);onSaved()},onError:e=>toast.error(getApiError(e))})
   const add=()=>{const value=draft.trim();if(value&&!options.includes(value))setOptions([...options,value]);setDraft('')}
-  return <div className="config-row"><div className="config-name"><strong>{config.display_name}</strong><code>{config.field_name}</code></div><div className="type-toggle"><button className={type==='text'?'active':''} onClick={()=>setType('text')}>Text</button><button className={type==='select'?'active':''} onClick={()=>setType('select')}>Dropdown</button></div><div className={`option-editor ${type==='text'?'disabled':''}`}><div className="option-chips">{options.map(option=><span key={option}>{option}<button onClick={()=>setOptions(options.filter(v=>v!==option))}><X/></button></span>)}</div>{type==='select'&&<div className="option-input"><input value={draft} onChange={e=>setDraft(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();add()}}} placeholder="Add an option"/><button onClick={add}><Plus/></button></div>}</div><button className="save-config" disabled={save.isPending||(type==='select'&&!options.length)} onClick={()=>save.mutate()}>{save.isPending?<LoaderCircle className="spin"/>:<Save/>}</button></div>
+  return <div className="config-row"><div className="config-name"><strong>{config.display_name}</strong><code>{config.field_name}</code></div><input className="config-text-input" value={name} maxLength={120} onChange={event=>setName(event.target.value)}/><label className="config-visibility"><input type="checkbox" checked={visible} onChange={event=>setVisible(event.target.checked)}/><i/><span>{visible?'Shown':'Hidden'}</span></label><label className="config-width"><input type="number" min={72} max={500} value={width} onChange={event=>setWidth(Math.min(500,Math.max(72,Number(event.target.value)||72)))}/><span>px</span></label>{inputEditable?<div className="type-toggle"><button className={type==='text'?'active':''} onClick={()=>setType('text')}>Text</button><button className={type==='select'?'active':''} onClick={()=>setType('select')}>Dropdown</button></div>:<span className="config-na">Read only</span>}<div className={`option-editor ${!inputEditable||type==='text'?'disabled':''}`}><div className="option-chips">{inputEditable&&options.map(option=><span key={option}>{option}<button onClick={()=>setOptions(options.filter(v=>v!==option))}><X/></button></span>)}</div>{inputEditable&&type==='select'&&<div className="option-input"><input value={draft} onChange={e=>setDraft(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();add()}}} placeholder="Add an option"/><button onClick={add}><Plus/></button></div>}</div><button className="save-config" disabled={save.isPending||!name.trim()||(inputEditable&&type==='select'&&!options.length)} onClick={()=>save.mutate()}>{save.isPending?<LoaderCircle className="spin"/>:<Save/>}</button></div>
 }

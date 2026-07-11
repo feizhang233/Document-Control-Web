@@ -16,6 +16,9 @@ def update_column_config(field_name: str, data: ColumnConfigUpdate, db: Session 
     if not item: raise HTTPException(status_code=404, detail="Configurable column not found")
     return item
 
+@router.post("/settings/columns/reset", response_model=list[ColumnConfigRead])
+def reset_column_configs(db: Session = Depends(get_db)): return SettingsService(db).reset_configs()
+
 @router.get("/settings/workflow", response_model=WorkflowConfigRead)
 def get_workflow_config(db: Session = Depends(get_db)): return SettingsService(db).get_workflow_config()
 

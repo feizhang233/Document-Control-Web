@@ -48,3 +48,13 @@
 .settings-panel .config-note{margin-top:10px;padding:10px 13px}
 .settings-panel .config-note strong,.settings-panel .config-note span{font-size:12px}
 .document-title-cell{min-width:190px;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#30415e;font-weight:500}
+.package-table.configurable-table{table-layout:fixed}
+.column-settings-heading{align-items:center}.column-settings-heading>div:nth-child(2){flex:1}.column-settings-actions{display:flex;align-items:center;gap:10px}.column-settings-actions small{font-size:11px;color:#77849a;white-space:nowrap}.column-settings-actions svg{width:14px}
+.settings-panel .config-table-head,.settings-panel .config-row{grid-template-columns:145px minmax(130px,1fr) 82px 92px 170px minmax(190px,1.25fr) 40px;gap:9px}
+.config-text-input,.config-width{height:38px;border:1px solid #dce2eb;border-radius:7px;background:white;color:#34435b}
+.config-text-input{width:100%;min-width:0;padding:0 10px;font-size:11px;outline:none}.config-text-input:focus,.config-width:focus-within{border-color:#7393e6;box-shadow:0 0 0 3px #edf2ff}
+.config-visibility{display:flex;align-items:center;gap:7px;font-size:10px;color:#66758b;cursor:pointer}.config-visibility input{display:none}.config-visibility i{width:30px;height:17px;border-radius:10px;background:#cbd2dc;position:relative;transition:.2s}.config-visibility i:after{content:'';position:absolute;width:13px;height:13px;left:2px;top:2px;border-radius:50%;background:white;transition:.2s}.config-visibility input:checked+i{background:#4e74df}.config-visibility input:checked+i:after{left:15px}
+.config-width{display:flex;align-items:center;overflow:hidden}.config-width input{width:62px;height:100%;border:0;outline:0;padding:0 4px 0 9px;font-size:11px;color:#34435b}.config-width span{font-size:10px;color:#8a95a5;padding-right:7px}
+.config-na{font-size:10px;color:#8a95a5}.settings-panel .config-row{min-height:58px}.settings-panel .config-table-head{height:38px}.settings-panel .option-input input{width:105px}
+@media(max-width:1200px){.settings-panel .config-table-head,.settings-panel .config-row{grid-template-columns:125px 150px 75px 85px 150px minmax(170px,1fr) 38px}.config-list{overflow-x:auto}.settings-panel .config-row{min-width:950px}.settings-panel .config-table-head{min-width:950px}}
+@media(max-width:760px){.column-settings-heading{align-items:flex-start;flex-wrap:wrap}.column-settings-actions{width:100%;justify-content:space-between}.settings-panel .config-row{grid-template-columns:130px 150px 75px 85px 150px minmax(170px,1fr) 38px}}

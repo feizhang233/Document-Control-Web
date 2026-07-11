@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { LoaderCircle, Save, X } from 'lucide-react'
-import type { ColumnConfig, Package, PackageInput, WorkflowConfig } from '../../types/package'
+import type { ColumnConfig, InputColumnField, Package, PackageInput, WorkflowConfig } from '../../types/package'
 import { feedbackSteps, submissionSteps, type FeedbackStatusCode } from '../../types/package'
 import { SubmissionSlider } from './SubmissionSlider'
 
@@ -12,7 +12,7 @@ const blank: PackageInput = {
   transmittal_number: '', workflow_number: '', workflow_terminated:false, notes:'', has_attachment:false, is_abandoned:false,
   submission_progress: emptyProgress, feedback: emptyFeedback, feedback_status:{UTIBER:'P',GDS:'P'}, order_index: 0,
 }
-type BaseField = ColumnConfig['field_name']
+type BaseField = InputColumnField
 const fields: Array<{ name: BaseField; label: string; placeholder?: string }> = [
   {name:'document_number',label:'Document number',placeholder:'Auto-generated if left blank'},
   {name:'document_title',label:'Document title',placeholder:'Enter document title'},

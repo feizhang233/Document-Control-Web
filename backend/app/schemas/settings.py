@@ -5,7 +5,7 @@ from app.schemas.package import PackageCreate
 
 CONFIGURABLE_FIELDS = {
     "document_number", "document_title", "document_date", "document_type", "initiator", "discipline",
-    "number_of_documents", "transmittal_number", "workflow_number",
+    "number_of_documents", "transmittal_number", "workflow_number", "submission_progress", "feedback",
 }
 
 class WorkflowConfigUpdate(BaseModel):
@@ -34,18 +34,27 @@ class ColumnConfigRead(BaseModel):
     id: int
     field_name: str
     display_name: str
+    is_visible: bool = True
+    column_width: int = 140
     input_type: Literal["text", "select"]
     options: list[str]
     updated_at: datetime
     model_config = ConfigDict(from_attributes=True)
 
 class ColumnConfigUpdate(BaseModel):
+    display_name: str | None = Field(default=None, min_length=1, max_length=120)
+    is_visible: bool | None = None
+    column_width: int | None = Field(default=None, ge=72, le=500)
     input_type: Literal["text", "select"]
     options: list[str] = Field(default_factory=list, max_length=100)
     @field_validator("options")
     @classmethod
     def clean_options(cls, value: list[str]):
         return list(dict.fromkeys(v.strip() for v in value if v.strip()))
+    @field_validator("display_name")
+    @classmethod
+    def clean_display_name(cls, value: str | None):
+        return value.strip() if value is not None else None
 
 class MetadataPackage(PackageCreate):
     created_at: datetime | None = None
