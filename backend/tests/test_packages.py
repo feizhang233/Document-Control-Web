@@ -15,9 +15,14 @@ def test_package_crud(client):
     assert updated.json()["number_of_documents"]==9
     assert client.delete(f"/api/packages/{created['id']}").status_code==204
 
-def test_duplicate_document_number_returns_conflict(client):
-    assert client.post("/api/packages",json=payload()).status_code==201
-    assert client.post("/api/packages",json=payload()).status_code==409
+def test_duplicate_document_number_allowed_for_revisions(client):
+    first = client.post("/api/packages", json=payload()).json()
+    second = client.post("/api/packages", json=payload())
+    assert second.status_code == 201, second.text
+    assert second.json()["document_number"] == first["document_number"]
+    assert second.json()["id"] != first["id"]
+    items = client.get("/api/packages", params={"period":"all","search":"DOC-CIV-001"}).json()
+    assert items["total"] == 2
 
 def test_reorder(client):
     first=client.post("/api/packages",json=payload("DOC-001")).json()
@@ -52,15 +57,18 @@ def test_column_config_and_metadata_backup(client):
     result = client.post("/api/metadata/import?mode=replace", json=backup.json())
     assert result.status_code == 200 and result.json()["packages_created"] == 1
 
-def test_csv_import_merges_and_replaces_documents(client):
+def test_csv_import_appends_and_replaces_documents(client):
     original = client.post("/api/packages", json=payload()).json()
     merged = client.post("/api/metadata/import-csv?mode=merge", json={"rows":[
         {"document_number":"DOC-CIV-001","initiator":"CSV owner","has_attachment":True},
         {"document_number":"DOC-CSV-002","document_date":"2026-07-12","document_type":"Drawing","discipline":"Civil","number_of_documents":2,"notes":"Imported from CSV"},
     ]})
-    assert merged.status_code == 200 and merged.json()["packages_created"] == 1 and merged.json()["packages_updated"] == 1
-    updated = client.get(f"/api/packages/{original['id']}").json()
-    assert updated["initiator"] == "CSV owner" and updated["has_attachment"] is True
+    assert merged.status_code == 200, merged.text
+    assert merged.json()["packages_created"] == 2 and merged.json()["packages_updated"] == 0
+    # Original row is unchanged; merge always appends (revisions may share document numbers).
+    original_after = client.get(f"/api/packages/{original['id']}").json()
+    assert original_after["initiator"] == "Ana Petrović"
+    assert client.get("/api/packages", params={"period":"all"}).json()["total"] == 3
     imported = client.get("/api/packages", params={"period":"all","search":"DOC-CSV-002"}).json()["items"][0]
     assert imported["notes"] == "Imported from CSV" and not any(imported["submission_progress"].values())
     replaced = client.post("/api/metadata/import-csv?mode=replace", json={"rows":[{"document_number":"DOC-REPLACED","number_of_documents":1}]})
@@ -78,6 +86,26 @@ def test_csv_import_accepts_empty_and_slash_dates(client):
     slash = client.get("/api/packages", params={"period":"all","search":"DOC-SLASH-DATE"}).json()["items"][0]
     assert empty["document_type"] == "Drawing"
     assert slash["document_date"] == "2026-07-12"
+
+def test_csv_import_keeps_duplicate_document_numbers_as_separate_rows(client):
+    """Same document_number in one CSV = separate revisions, not collapsed."""
+    result = client.post("/api/metadata/import-csv?mode=replace", json={"rows":[
+        {"document_number":"NFS-PCH-MST-MEP-PB-002","document_date":"2026-02-10","document_type":"MS","initiator":"First","discipline":"Plumbing","notes":"first revision","workflow_number":"WF-000704"},
+        {"document_number":"NFS-PCH-MST-MEP-PB-002","document_date":"2026-02-10","document_type":"MS","initiator":"王亮","discipline":"Plumbing","notes":"second revision","has_attachment":True,"workflow_number":"WF-000705"},
+        {"document_number":"DOC-OTHER-001","document_type":"Drawing"},
+    ]})
+    assert result.status_code == 200, result.text
+    body = result.json()
+    assert body["packages_created"] == 3
+    assert body["packages_updated"] == 0
+    items = client.get("/api/packages", params={"period":"all"}).json()
+    assert items["total"] == 3
+    revisions = client.get("/api/packages", params={"period":"all","search":"NFS-PCH-MST-MEP-PB-002"}).json()["items"]
+    assert len(revisions) == 2
+    notes = {row["notes"] for row in revisions}
+    assert notes == {"first revision", "second revision"}
+    workflows = {row["workflow_number"] for row in revisions}
+    assert workflows == {"WF-000704", "WF-000705"}
 
 def test_workflow_configuration_reorders_and_remaps_existing_data(client):
     data = payload()

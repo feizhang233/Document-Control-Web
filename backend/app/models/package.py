@@ -7,7 +7,8 @@ class Package(Base):
     __tablename__ = "packages"
     __table_args__ = (Index("ix_packages_created_at", "created_at"), Index("ix_packages_order_index", "order_index"), Index("ix_packages_is_abandoned", "is_abandoned"), Index("ix_packages_workflow_terminated", "workflow_terminated"))
     id: Mapped[int] = mapped_column(primary_key=True)
-    document_number: Mapped[str] = mapped_column(String(80), unique=True, nullable=False)
+    # Not unique: the same document number can appear as multiple revisions / submissions.
+    document_number: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
     document_date: Mapped[date] = mapped_column(Date, nullable=False, server_default=func.current_date())
     document_type: Mapped[str] = mapped_column(String(80), nullable=False)
     initiator: Mapped[str] = mapped_column(String(120), nullable=False)
