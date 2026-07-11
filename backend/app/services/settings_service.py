@@ -11,20 +11,21 @@ DEFAULT_WORKFLOW = {
     "submission_steps":["Transmittal Preparation","DCO Backup","Signature Process","Workflow Initiation","Email Feedback","Data Registration"],
     "feedback_reviewers":["UTIBER","GDS"],
     "feedback_status_labels":{"A":"Approved","B":"Approved with comments","C":"Rejected","P":"Pending"},
+    "feedback_status_colors":{"A":"#21815d","B":"#9b6816","C":"#b13f4c","P":"#4267bd"},
 }
 
 DEFAULT_COLUMN_CONFIGS = {
-    "document_number": ("Document Number", 165, "text", []),
-    "document_title": ("Document Title", 220, "text", []),
-    "document_date": ("Date", 110, "text", []),
-    "document_type": ("Document Type", 135, "select", ["Drawing", "Technical Report", "Method Statement", "Specification", "Calculation"]),
-    "initiator": ("Initiator", 135, "text", []),
-    "discipline": ("Discipline", 110, "select", ["Civil", "Structural", "Architectural", "Electrical", "Mechanical", "Geotechnical"]),
-    "number_of_documents": ("Docs", 72, "text", []),
-    "transmittal_number": ("Transmittal No.", 165, "text", []),
-    "workflow_number": ("Workflow No.", 135, "text", []),
-    "submission_progress": ("Submission Progress", 180, "text", []),
-    "feedback": ("Feedback", 220, "text", []),
+    "document_number": ("Document Number", 165, "text", [], {}),
+    "document_title": ("Document Title", 220, "text", [], {}),
+    "document_date": ("Date", 110, "text", [], {}),
+    "document_type": ("Document Type", 135, "select", ["Drawing", "Technical Report", "Method Statement", "Specification", "Calculation"], {"Drawing":"#3164ce","Technical Report":"#7453be","Method Statement":"#b06a1d","Specification":"#21815d","Calculation":"#9b4d80"}),
+    "initiator": ("Initiator", 135, "text", [], {}),
+    "discipline": ("Discipline", 110, "select", ["Civil", "Structural", "Architectural", "Electrical", "Mechanical", "Geotechnical"], {}),
+    "number_of_documents": ("Docs", 72, "text", [], {}),
+    "transmittal_number": ("Transmittal No.", 165, "text", [], {}),
+    "workflow_number": ("Workflow No.", 135, "text", [], {}),
+    "submission_progress": ("Submission Progress", 180, "text", [], {}),
+    "feedback": ("Feedback", 220, "text", [], {}),
 }
 
 class SettingsService:
@@ -42,10 +43,11 @@ class SettingsService:
         if data.column_width is not None: item.column_width = data.column_width
         item.input_type = data.input_type
         item.options = data.options if data.input_type == "select" else []
+        item.option_colors = {option:color for option,color in data.option_colors.items() if option in item.options}
         self.db.commit(); self.db.refresh(item); return item
     def reset_configs(self):
         existing = {item.field_name:item for item in self.db.scalars(select(ColumnConfig))}
-        for field_name, (display_name, width, input_type, options) in DEFAULT_COLUMN_CONFIGS.items():
+        for field_name, (display_name, width, input_type, options, option_colors) in DEFAULT_COLUMN_CONFIGS.items():
             item = existing.get(field_name)
             if not item:
                 item = ColumnConfig(field_name=field_name); self.db.add(item)
@@ -54,6 +56,7 @@ class SettingsService:
             item.column_width = width
             item.input_type = input_type
             item.options = options
+            item.option_colors = option_colors
         self.db.commit()
         return self.list_configs()
     def get_workflow_config(self):
@@ -71,6 +74,7 @@ class SettingsService:
         item.submission_steps = data.submission_steps
         item.feedback_reviewers = data.feedback_reviewers
         item.feedback_status_labels = data.feedback_status_labels
+        item.feedback_status_colors = data.feedback_status_colors
         self.db.commit(); self.db.refresh(item); return item
     def export(self):
         packages = list(self.db.scalars(select(Package).order_by(Package.order_index, Package.id)))
@@ -108,6 +112,7 @@ class SettingsService:
                 config.column_width = incoming.column_width
                 config.input_type = incoming.input_type
                 config.options = incoming.options if incoming.input_type == "select" else []
+                config.option_colors = {option:color for option,color in incoming.option_colors.items() if option in config.options}
                 configs_updated += 1
         self.db.commit()
         return {"mode":mode,"packages_created":created,"packages_updated":updated,"configs_updated":configs_updated}

@@ -12,6 +12,7 @@ class WorkflowConfigUpdate(BaseModel):
     submission_steps: list[str] = Field(min_length=6, max_length=6)
     feedback_reviewers: list[str] = Field(min_length=2, max_length=2)
     feedback_status_labels: dict[Literal["A","B","C","P"], str]
+    feedback_status_colors: dict[Literal["A","B","C","P"], str] = Field(default_factory=lambda:{"A":"#21815d","B":"#9b6816","C":"#b13f4c","P":"#4267bd"})
     @field_validator("submission_steps", "feedback_reviewers")
     @classmethod
     def validate_unique_names(cls, value: list[str]):
@@ -24,6 +25,12 @@ class WorkflowConfigUpdate(BaseModel):
         cleaned = {code: label.strip() for code, label in value.items()}
         if any(not label for label in cleaned.values()): raise ValueError("Feedback status labels must not be empty")
         return cleaned
+    @field_validator("feedback_status_colors")
+    @classmethod
+    def validate_status_colors(cls, value: dict[str, str]):
+        if set(value) != {"A","B","C","P"} or any(not _is_hex_color(color) for color in value.values()):
+            raise ValueError("Feedback colors must contain A, B, C, and P as hex colors")
+        return value
 
 class WorkflowConfigRead(WorkflowConfigUpdate):
     id: int
@@ -38,6 +45,7 @@ class ColumnConfigRead(BaseModel):
     column_width: int = 140
     input_type: Literal["text", "select"]
     options: list[str]
+    option_colors: dict[str,str] = Field(default_factory=dict)
     updated_at: datetime
     model_config = ConfigDict(from_attributes=True)
 
@@ -47,6 +55,7 @@ class ColumnConfigUpdate(BaseModel):
     column_width: int | None = Field(default=None, ge=72, le=500)
     input_type: Literal["text", "select"]
     options: list[str] = Field(default_factory=list, max_length=100)
+    option_colors: dict[str,str] = Field(default_factory=dict)
     @field_validator("options")
     @classmethod
     def clean_options(cls, value: list[str]):
@@ -55,6 +64,15 @@ class ColumnConfigUpdate(BaseModel):
     @classmethod
     def clean_display_name(cls, value: str | None):
         return value.strip() if value is not None else None
+    @field_validator("option_colors")
+    @classmethod
+    def validate_option_colors(cls, value: dict[str,str]):
+        if any(not _is_hex_color(color) for color in value.values()):
+            raise ValueError("Option colors must use #RRGGBB format")
+        return value
+
+def _is_hex_color(value: str) -> bool:
+    return len(value) == 7 and value.startswith("#") and all(character in "0123456789abcdefABCDEF" for character in value[1:])
 
 class MetadataPackage(PackageCreate):
     created_at: datetime | None = None

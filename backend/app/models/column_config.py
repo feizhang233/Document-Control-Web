@@ -12,4 +12,5 @@ class ColumnConfig(Base):
     column_width: Mapped[int] = mapped_column(Integer, default=140, nullable=False)
     input_type: Mapped[str] = mapped_column(String(20), default="text", nullable=False)
     options: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
+    option_colors: Mapped[dict[str,str]] = mapped_column(JSON, default=dict, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)

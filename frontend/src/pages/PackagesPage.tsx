@@ -16,7 +16,7 @@ const meta = {
   workflow: ['Workflow register', 'Track workflow references and external feedback across all documents.'],
   transmittal: ['Transmittal register', 'Review issued transmittals and their feedback status.'],
 } as const
-const defaultWorkflowConfig:WorkflowConfig={id:1,submission_steps:[...submissionSteps],feedback_reviewers:[...feedbackSteps],feedback_status_labels:{A:'Approved',B:'Approved with comments',C:'Rejected',P:'Pending'},updated_at:''}
+const defaultWorkflowConfig:WorkflowConfig={id:1,submission_steps:[...submissionSteps],feedback_reviewers:[...feedbackSteps],feedback_status_labels:{A:'Approved',B:'Approved with comments',C:'Rejected',P:'Pending'},feedback_status_colors:{A:'#21815d',B:'#9b6816',C:'#b13f4c',P:'#4267bd'},updated_at:''}
 
 export function PackagesPage({ kind }: { kind: PageKind }) {
   const { period: routePeriod } = useParams()
@@ -43,6 +43,7 @@ export function PackagesPage({ kind }: { kind: PageKind }) {
   const quickUpdate = useMutation({mutationFn:({id,data}:{id:number;data:Partial<PackageInput>})=>packagesApi.update(id,data),onSuccess:updated=>{if(selected?.id===updated.id)setSelected(updated);refresh();queryClient.invalidateQueries({queryKey:['notifications']})},onError:e=>toast.error(getApiError(e))})
   const duplicate = useMutation({mutationFn:(item:Package)=>packagesApi.duplicate(item.id),onSuccess:item=>{toast.success(`Duplicated as ${item.document_number}`);refresh()},onError:e=>toast.error(getApiError(e))})
   const remove = useMutation({mutationFn:(item:Package)=>packagesApi.remove(item.id),onSuccess:(_result,item)=>{toast.success(`${item.document_number} deleted permanently`);if(selected?.id===item.id)setSelected(null);refresh();queryClient.invalidateQueries({queryKey:['notifications']})},onError:e=>toast.error(getApiError(e))})
+  const resizeColumn = useMutation({mutationFn:({config,width}:{config:NonNullable<typeof configs.data>[number];width:number})=>settingsApi.updateColumn(config.field_name,{...config,column_width:width}),onMutate:async({config,width})=>{await queryClient.cancelQueries({queryKey:['column-configs']});const previous=queryClient.getQueryData<typeof configs.data>(['column-configs']);queryClient.setQueryData<typeof configs.data>(['column-configs'],items=>items?.map(item=>item.field_name===config.field_name?{...item,column_width:width}:item));return{previous}},onError:(_error,_variables,context)=>{if(context?.previous)queryClient.setQueryData(['column-configs'],context.previous);toast.error('Could not save column width')},onSettled:()=>queryClient.invalidateQueries({queryKey:['column-configs']})})
   const titlePeriod = period === 'week' ? 'This week' : period === 'month' ? 'This month' : period === 'year' ? 'This year' : 'All records'
   const disciplines = useMemo(() => ['Civil','Structural','Architectural','Electrical','Mechanical','Geotechnical'], [])
   const visibleItems=useMemo(()=>{
@@ -68,13 +69,13 @@ export function PackagesPage({ kind }: { kind: PageKind }) {
       <div className="table-toolbar"><div className="search-box"><Search size={17}/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search documents, workflows, people…"/><kbd>⌘ K</kbd></div><div className="toolbar-filters"><label><Filter size={15}/><select value={discipline} onChange={e=>setDiscipline(e.target.value)}><option value="">All disciplines</option>{disciplines.map(d=><option key={d}>{d}</option>)}</select></label><AdvancedFilter rules={filters} onChange={setFilters}/></div></div>
       <div className="result-strip"><div><strong>{filters.length?visibleItems.length:query.data?.total??'—'}</strong> documents <span>·</span> {titlePeriod}{filters.length>0&&<span>· {filters.length} filters</span>}</div><div className="legend"><i className="done"/> Complete <i/> Pending</div></div>
       {query.isLoading ? <LoadingState/> : query.isError ? <ErrorState message={getApiError(query.error)} retry={()=>query.refetch()}/> : !visibleItems.length ? <EmptyState filtered={!!search || !!discipline || !!filters.length}/> : <PackageTable
-        items={visibleItems} kind={kind} configs={configs.data||[]} submissionSteps={currentSubmissionSteps} feedbackReviewers={currentFeedbackReviewers} feedbackStatusLabels={workflowConfig.feedback_status_labels} {...{sortBy,sortOrder}}
+        items={visibleItems} kind={kind} configs={configs.data||[]} submissionSteps={currentSubmissionSteps} feedbackReviewers={currentFeedbackReviewers} feedbackStatusLabels={workflowConfig.feedback_status_labels} feedbackStatusColors={workflowConfig.feedback_status_colors} {...{sortBy,sortOrder}}
         onSort={key => { if(sortBy===key) setSortOrder(v=>v==='asc'?'desc':'asc'); else {setSortBy(key);setSortOrder('asc')} }} onView={setSelected} onEdit={item=>{setEditing(item);setEditorOpen(true)}}
-        onReorder={ids=>reorder.mutate(ids)} onAdvance={advance} onDuplicate={item=>duplicate.mutate(item)} onToggleAbandoned={item=>quickUpdate.mutate({id:item.id,data:{is_abandoned:!item.is_abandoned}})} onToggleTerminate={item=>quickUpdate.mutate({id:item.id,data:{workflow_terminated:!item.workflow_terminated}})} onDelete={item=>remove.mutate(item)}
+        onColumnResize={(field,width)=>{const config=configs.data?.find(item=>item.field_name===field);if(config)resizeColumn.mutate({config,width})}} onReorder={ids=>reorder.mutate(ids)} onAdvance={advance} onDuplicate={item=>duplicate.mutate(item)} onToggleAbandoned={item=>quickUpdate.mutate({id:item.id,data:{is_abandoned:!item.is_abandoned}})} onToggleTerminate={item=>quickUpdate.mutate({id:item.id,data:{workflow_terminated:!item.workflow_terminated}})} onDelete={item=>remove.mutate(item)}
       />}
       {!!visibleItems.length && <div className="table-footer"><span>Showing {visibleItems.length} of {query.data?.total} documents</span><span>Click a progress bar to advance · Drag rows to reprioritize</span></div>}
     </section>
-    <PackageDrawer item={selected} workflowConfig={workflowConfig} saving={quickUpdate.isPending} onUpdate={data=>selected&&quickUpdate.mutate({id:selected.id,data})} onClose={()=>setSelected(null)}/>
+    <PackageDrawer item={selected} configs={configs.data||[]} workflowConfig={workflowConfig} saving={quickUpdate.isPending} onUpdate={data=>selected&&quickUpdate.mutate({id:selected.id,data})} onClose={()=>setSelected(null)}/>
     <PackageEditor item={editing} configs={configs.data||[]} workflowConfig={workflowConfig} open={editorOpen} saving={save.isPending} onClose={()=>setEditorOpen(false)} onSave={data=>save.mutate(data)}/>
   </>
 }

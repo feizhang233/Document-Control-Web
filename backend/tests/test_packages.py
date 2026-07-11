@@ -75,6 +75,8 @@ def test_column_config_and_metadata_backup(client):
     discipline = next(item for item in reset.json() if item["field_name"] == "discipline")
     assert discipline["display_name"] == "Discipline"
     assert discipline["is_visible"] is True and discipline["column_width"] == 110
+    document_type = next(item for item in reset.json() if item["field_name"] == "document_type")
+    assert document_type["option_colors"]["Drawing"] == "#3164ce"
     backup = client.get("/api/metadata/export")
     assert backup.status_code == 200 and backup.json()["packages"][0]["document_number"] == "DOC-CIV-001"
     result = client.post("/api/metadata/import?mode=replace", json=backup.json())
@@ -144,8 +146,10 @@ def test_workflow_configuration_reorders_and_remaps_existing_data(client):
         "submission_steps":["Preparation","Backup","Signature","Initiation","Email","Registration"],
         "feedback_reviewers":["Reviewer One","Reviewer Two"],
         "feedback_status_labels":{"A":"Accepted","B":"Accepted with comments","C":"Rejected","P":"Pending"},
+        "feedback_status_colors":{"A":"#15803d","B":"#a16207","C":"#b91c1c","P":"#1d4ed8"},
     })
     assert changed.status_code == 200
+    assert changed.json()["feedback_status_colors"]["A"] == "#15803d"
     updated = client.get(f"/api/packages/{created['id']}").json()
     assert updated["submission_progress"]["Preparation"] is True
     assert updated["submission_progress"]["Backup"] is False

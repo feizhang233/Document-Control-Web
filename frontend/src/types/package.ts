@@ -55,6 +55,7 @@ export interface ColumnConfig {
   column_width: number
   input_type: 'text' | 'select'
   options: string[]
+  option_colors: Record<string,string>
   updated_at: string
 }
 
@@ -90,6 +91,7 @@ export interface WorkflowConfig {
   submission_steps: string[]
   feedback_reviewers: string[]
   feedback_status_labels: Record<FeedbackStatusCode,string>
+  feedback_status_colors: Record<FeedbackStatusCode,string>
   updated_at: string
 }
 

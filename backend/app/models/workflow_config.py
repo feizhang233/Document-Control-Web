@@ -9,4 +9,5 @@ class WorkflowConfig(Base):
     submission_steps: Mapped[list[str]] = mapped_column(JSON, nullable=False)
     feedback_reviewers: Mapped[list[str]] = mapped_column(JSON, nullable=False)
     feedback_status_labels: Mapped[dict[str,str]] = mapped_column(JSON, nullable=False)
+    feedback_status_colors: Mapped[dict[str,str]] = mapped_column(JSON, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
