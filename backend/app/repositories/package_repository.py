@@ -1,20 +1,33 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import date, timedelta
 from sqlalchemy import asc, desc, func, or_, select
 from sqlalchemy.orm import Session
 from app.models.package import Package
 
 SORTABLE_FIELDS = {"document_number","document_date","document_type","initiator","discipline","number_of_documents","transmittal_number","workflow_number","workflow_terminated","is_abandoned","has_attachment","order_index","created_at","updated_at"}
 
+def period_bounds(period: str, today: date | None = None) -> tuple[date, date]:
+    """Return an inclusive start and exclusive end for the current calendar period."""
+    current = today or date.today()
+    if period == "week":
+        start = current - timedelta(days=current.weekday())
+        return start, start + timedelta(days=7)
+    if period == "month":
+        start = current.replace(day=1)
+        end = date(start.year + (start.month == 12), start.month % 12 + 1, 1)
+        return start, end
+    if period == "year":
+        return date(current.year, 1, 1), date(current.year + 1, 1, 1)
+    raise ValueError(f"Unsupported period: {period}")
+
 class PackageRepository:
     def __init__(self, db: Session): self.db = db
     def list(self, *, period: str, search: str | None, discipline: str | None, document_type: str | None, sort_by: str, sort_order: str, page: int, page_size: int):
         query = select(Package)
         if period != "all":
-            now = datetime.now(timezone.utc).replace(tzinfo=None)
-            start = now - timedelta(days={"week": 7, "month": 30, "year": 365}[period])
-            query = query.where(Package.created_at >= start)
+            start, end = period_bounds(period)
+            query = query.where(Package.document_date >= start, Package.document_date < end)
         if search:
             term = f"%{search}%"
             query = query.where(or_(Package.document_number.like(term), Package.workflow_number.like(term), Package.transmittal_number.like(term), Package.initiator.like(term), Package.discipline.like(term)))

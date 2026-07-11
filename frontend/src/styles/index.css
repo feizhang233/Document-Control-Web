@@ -24,3 +24,26 @@
 .settings-panel .settings-heading p{font-size:13px;line-height:1.5}.settings-panel .backup-card p{font-size:11px}.settings-panel .backup-card small{font-size:10px}.workflow-config-title strong{font-size:13px}.workflow-config-title span{font-size:11px;line-height:1.4}.workflow-config-title small{font-size:10px;padding:5px 9px}.workflow-step-row{grid-template-columns:30px minmax(0,1fr) 38px 38px;gap:8px}.workflow-step-row b{width:30px;height:30px;font-size:10px}.workflow-step-row input,.workflow-reviewer-list input,.workflow-status-list input{height:42px;padding:0 11px;font-size:12px}.workflow-step-row button{height:38px}.workflow-step-row svg{width:16px}.workflow-reviewer-list span{font-size:10px;margin-bottom:6px}.workflow-status-list label{grid-template-columns:30px 1fr;gap:8px}.workflow-status-list b{height:30px;font-size:10px}.workflow-config-actions{padding:13px 15px}.workflow-config-actions p{font-size:11px;line-height:1.45}.workflow-config-actions .primary-button{font-size:12px}.config-table-head{height:36px;font-size:10px}.config-table-head,.config-row{grid-template-columns:180px 190px minmax(280px,1fr) 40px}.config-row{min-height:70px;padding:13px 11px}.config-name strong{font-size:12px}.config-name code{font-size:10px}.type-toggle button{height:30px;padding:0 11px;font-size:10px}.option-chips>span{font-size:10px;padding:5px 7px}.option-chips svg{width:11px;height:11px}.option-input{height:33px}.option-input input{font-size:10px;width:125px}.option-input button{width:32px}.save-config{width:36px;height:36px}.save-config svg{width:15px}.config-note{padding:13px 15px}.config-note strong,.config-note span{font-size:11px}.config-loading{font-size:11px}
 .nav-parent-row{height:42px;display:flex;align-items:center;border-radius:8px}.nav-parent-row.active,.nav-parent-row:hover{background:#1d2a48;color:#fff}.nav-parent-row.active{box-shadow:inset 3px 0 #5b82ff}.nav-parent-row .nav-parent{height:42px;flex:1;border-radius:8px;padding-right:4px}.nav-parent-row .nav-parent:hover{background:transparent}.nav-collapse-button{width:38px;height:42px;border:0;border-radius:8px;background:transparent;color:inherit;display:grid;place-items:center}.nav-collapse-button:hover{background:#ffffff12}.nav-collapse-button svg{transition:transform .2s}.nav-section.collapsed .nav-collapse-button svg{transform:rotate(-90deg)}.backup-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.csv-import-review .file-summary>svg{color:#298461}
 .row-menu-popover button.danger{color:#be3e4a}.row-menu-popover button.danger:hover{background:#fff1f2;color:#a92f3c}
+
+/* Settings should remain easy to scan without stretching each section vertically. */
+.settings-stack{gap:12px}
+.settings-panel.wide{padding:16px 18px}
+.settings-panel .settings-heading{padding-bottom:11px;margin-bottom:13px}
+.settings-panel .settings-heading h2{font-size:18px}
+.settings-panel .settings-heading p{margin:4px 0 0;font-size:13px;line-height:1.4}
+.settings-panel .icon-heading{gap:10px}
+.settings-panel .icon-heading>span{width:32px;height:32px}
+.settings-panel .backup-grid{gap:9px}
+.settings-panel .backup-card{padding:12px;gap:10px}
+.settings-panel .backup-card h3{font-size:14px}
+.settings-panel .backup-card p{font-size:12px;line-height:1.4;margin:3px 0}
+.settings-panel .backup-card small{font-size:11px}
+.settings-panel .workflow-config-block{padding:12px}
+.settings-panel .workflow-config-title{margin-bottom:9px}
+.settings-panel .workflow-step-list,.settings-panel .workflow-config-side{gap:6px}
+.settings-panel .config-row{min-height:62px;padding:10px 11px}
+.settings-panel .config-name strong{font-size:13px}
+.settings-panel .config-name code{font-size:11px}
+.settings-panel .type-toggle button,.settings-panel .option-chips>span,.settings-panel .option-input input{font-size:11px}
+.settings-panel .config-note{margin-top:10px;padding:10px 13px}
+.settings-panel .config-note strong,.settings-panel .config-note span{font-size:12px}

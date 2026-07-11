@@ -1,4 +1,14 @@
+from datetime import date
+
+from app.repositories.package_repository import period_bounds
 from app.schemas.package import FEEDBACK_STEPS, SUBMISSION_STEPS
+
+def test_calendar_period_bounds():
+    assert period_bounds("week", date(2024, 1, 2)) == (date(2024, 1, 1), date(2024, 1, 8))
+    assert period_bounds("week", date(2024, 1, 5)) == (date(2024, 1, 1), date(2024, 1, 8))
+    assert period_bounds("month", date(2024, 2, 20)) == (date(2024, 2, 1), date(2024, 3, 1))
+    assert period_bounds("month", date(2024, 12, 20)) == (date(2024, 12, 1), date(2025, 1, 1))
+    assert period_bounds("year", date(2024, 7, 1)) == (date(2024, 1, 1), date(2025, 1, 1))
 
 def payload(number="DOC-CIV-001"):
     return {"document_number":number,"document_date":"2026-07-11","document_type":"Drawing","initiator":"Ana Petrović","discipline":"Civil","number_of_documents":4,"transmittal_number":"TR-001","workflow_number":"WF-001","submission_progress":{s:False for s in SUBMISSION_STEPS},"feedback":{s:False for s in FEEDBACK_STEPS},"order_index":0}
