@@ -8,6 +8,28 @@ CONFIGURABLE_FIELDS = {
     "number_of_documents", "transmittal_number", "workflow_number",
 }
 
+class WorkflowConfigUpdate(BaseModel):
+    submission_steps: list[str] = Field(min_length=6, max_length=6)
+    feedback_reviewers: list[str] = Field(min_length=2, max_length=2)
+    feedback_status_labels: dict[Literal["A","B","C","P"], str]
+    @field_validator("submission_steps", "feedback_reviewers")
+    @classmethod
+    def validate_unique_names(cls, value: list[str]):
+        cleaned = [item.strip() for item in value]
+        if any(not item for item in cleaned) or len(set(cleaned)) != len(cleaned): raise ValueError("Workflow names must be non-empty and unique")
+        return cleaned
+    @field_validator("feedback_status_labels")
+    @classmethod
+    def validate_status_labels(cls, value: dict[str, str]):
+        cleaned = {code: label.strip() for code, label in value.items()}
+        if any(not label for label in cleaned.values()): raise ValueError("Feedback status labels must not be empty")
+        return cleaned
+
+class WorkflowConfigRead(WorkflowConfigUpdate):
+    id: int
+    updated_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
 class ColumnConfigRead(BaseModel):
     id: int
     field_name: str
@@ -35,14 +57,33 @@ class MetadataExport(BaseModel):
     exported_at: datetime
     packages: list[MetadataPackage]
     column_configs: list[ColumnConfigRead]
+    workflow_config: WorkflowConfigRead
 
 class MetadataImport(BaseModel):
     format_version: Literal["1.0"]
     packages: list[MetadataPackage] = Field(default_factory=list, max_length=10000)
     column_configs: list[ColumnConfigRead] = Field(default_factory=list)
+    workflow_config: WorkflowConfigUpdate | None = None
 
 class MetadataImportResult(BaseModel):
     mode: Literal["merge", "replace"]
     packages_created: int
     packages_updated: int
     configs_updated: int
+
+class CsvImportRow(BaseModel):
+    document_number: str | None = Field(default=None, max_length=80)
+    document_date: date | None = None
+    document_type: str | None = Field(default=None, max_length=80)
+    initiator: str | None = Field(default=None, max_length=120)
+    discipline: str | None = Field(default=None, max_length=80)
+    number_of_documents: int | None = Field(default=None, ge=1)
+    transmittal_number: str | None = Field(default=None, max_length=80)
+    workflow_number: str | None = Field(default=None, max_length=80)
+    workflow_terminated: bool | None = None
+    has_attachment: bool | None = None
+    is_abandoned: bool | None = None
+    notes: str | None = Field(default=None, max_length=5000)
+
+class CsvMetadataImport(BaseModel):
+    rows: list[CsvImportRow] = Field(min_length=1, max_length=10000)

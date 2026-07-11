@@ -21,6 +21,7 @@ class Package(Base):
     is_abandoned: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     submission_progress: Mapped[dict] = mapped_column(JSON, nullable=False)
     feedback: Mapped[dict] = mapped_column(JSON, nullable=False)
+    feedback_status: Mapped[dict] = mapped_column(JSON, default=lambda: {"UTIBER":"P", "GDS":"P"}, nullable=False)
     order_index: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)

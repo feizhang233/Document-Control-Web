@@ -8,6 +8,7 @@ def test_package_crud(client):
     assert created["document_number"]=="DOC-CIV-001"
     assert created["document_date"]=="2026-07-11"
     assert set(created["feedback"]) == {"UTIBER", "GDS", "Terminate"}
+    assert created["feedback_status"] == {"UTIBER":"P", "GDS":"P"}
     response=client.get("/api/packages",params={"period":"all","search":"Ana"})
     assert response.status_code==200 and response.json()["total"]==1
     updated=client.patch(f"/api/packages/{created['id']}",json={"number_of_documents":9})
@@ -51,6 +52,44 @@ def test_column_config_and_metadata_backup(client):
     result = client.post("/api/metadata/import?mode=replace", json=backup.json())
     assert result.status_code == 200 and result.json()["packages_created"] == 1
 
+def test_csv_import_merges_and_replaces_documents(client):
+    original = client.post("/api/packages", json=payload()).json()
+    merged = client.post("/api/metadata/import-csv?mode=merge", json={"rows":[
+        {"document_number":"DOC-CIV-001","initiator":"CSV owner","has_attachment":True},
+        {"document_number":"DOC-CSV-002","document_date":"2026-07-12","document_type":"Drawing","discipline":"Civil","number_of_documents":2,"notes":"Imported from CSV"},
+    ]})
+    assert merged.status_code == 200 and merged.json()["packages_created"] == 1 and merged.json()["packages_updated"] == 1
+    updated = client.get(f"/api/packages/{original['id']}").json()
+    assert updated["initiator"] == "CSV owner" and updated["has_attachment"] is True
+    imported = client.get("/api/packages", params={"period":"all","search":"DOC-CSV-002"}).json()["items"][0]
+    assert imported["notes"] == "Imported from CSV" and not any(imported["submission_progress"].values())
+    replaced = client.post("/api/metadata/import-csv?mode=replace", json={"rows":[{"document_number":"DOC-REPLACED","number_of_documents":1}]})
+    assert replaced.status_code == 200 and replaced.json()["packages_created"] == 1
+    assert client.get("/api/packages", params={"period":"all"}).json()["total"] == 1
+
+def test_workflow_configuration_reorders_and_remaps_existing_data(client):
+    data = payload()
+    data["submission_progress"][SUBMISSION_STEPS[0]] = True
+    data["feedback"]["UTIBER"] = True
+    data["feedback_status"] = {"UTIBER":"A", "GDS":"P"}
+    created = client.post("/api/packages", json=data).json()
+    current = client.get("/api/settings/workflow")
+    assert current.status_code == 200
+    assert current.json()["submission_steps"][1] == "DCO Backup"
+    changed = client.put("/api/settings/workflow", json={
+        "submission_steps":["Preparation","Backup","Signature","Initiation","Email","Registration"],
+        "feedback_reviewers":["Reviewer One","Reviewer Two"],
+        "feedback_status_labels":{"A":"Accepted","B":"Accepted with comments","C":"Rejected","P":"Pending"},
+    })
+    assert changed.status_code == 200
+    updated = client.get(f"/api/packages/{created['id']}").json()
+    assert updated["submission_progress"]["Preparation"] is True
+    assert updated["submission_progress"]["Backup"] is False
+    assert updated["feedback"]["Reviewer One"] is True
+    assert updated["feedback_status"]["Reviewer One"] == "A"
+    duplicated = client.post(f"/api/packages/{created['id']}/duplicate").json()
+    assert duplicated["feedback_status"] == {"Reviewer One":"P", "Reviewer Two":"P"}
+
 def test_blank_document_number_creates_draft(client):
     data = payload("")
     data.update({"document_type":"", "initiator":"", "discipline":""})
@@ -65,10 +104,12 @@ def test_external_workflow_update_creates_notification(client):
     updated = client.patch(
         "/api/external/workflows/WF-001",
         headers={"X-API-Key":"test-external-key"},
-        json={"feedback":{"UTIBER":True, "Terminate":True}, "message":"Daily sync completed the workflow."},
+        json={"feedback":{"Terminate":True}, "feedback_status":{"UTIBER":"B", "GDS":"P"}, "message":"Daily sync completed the workflow."},
     )
     assert updated.status_code == 200
     assert updated.json()["feedback"]["Terminate"] is True
+    assert updated.json()["feedback"]["UTIBER"] is True
+    assert updated.json()["feedback_status"] == {"UTIBER":"B", "GDS":"P"}
     assert not any(updated.json()["submission_progress"].values())
     notifications = client.get("/api/notifications").json()
     assert notifications["unread_count"] == 1

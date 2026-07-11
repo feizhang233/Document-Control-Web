@@ -1,6 +1,6 @@
 from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field, field_validator
-from app.schemas.package import FEEDBACK_STEPS, SUBMISSION_STEPS
+from app.schemas.package import FEEDBACK_STATUS_VALUES
 
 class NotificationRead(BaseModel):
     id: int
@@ -20,15 +20,20 @@ class NotificationList(BaseModel):
 class ExternalWorkflowUpdate(BaseModel):
     submission_progress: dict[str, bool] | None = None
     feedback: dict[str, bool] | None = None
+    feedback_status: dict[str, str] | None = None
     terminate_workflow: bool | None = None
     message: str | None = Field(default=None, max_length=500)
     @field_validator("submission_progress")
     @classmethod
     def validate_progress(cls, value):
-        if value is not None and not set(value).issubset(SUBMISSION_STEPS): raise ValueError("Unknown submission progress step")
         return value
     @field_validator("feedback")
     @classmethod
     def validate_feedback(cls, value):
-        if value is not None and not set(value).issubset(FEEDBACK_STEPS): raise ValueError("Unknown feedback organisation")
+        return value
+    @field_validator("feedback_status")
+    @classmethod
+    def validate_feedback_status(cls, value):
+        if value is not None and (len(value) > 2 or any(status not in FEEDBACK_STATUS_VALUES for status in value.values())):
+            raise ValueError("Feedback statuses must use A, B, C, or P")
         return value

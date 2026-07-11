@@ -1,14 +1,17 @@
 import { useQuery } from '@tanstack/react-query'
 import { ArrowRight, CheckCircle2, Clock3, FileCheck2, Files, Send, TrendingUp } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { packagesApi } from '../lib/api'
+import { packagesApi, settingsApi } from '../lib/api'
 import { feedbackSteps, submissionSteps } from '../types/package'
 
 export function DashboardPage() {
   const { data } = useQuery({ queryKey:['dashboard-packages'], queryFn:()=>packagesApi.list({period:'all',page_size:100}) })
+  const {data:workflowConfig}=useQuery({queryKey:['workflow-config'],queryFn:settingsApi.getWorkflow})
+  const currentSubmissionSteps=workflowConfig?.submission_steps||submissionSteps
+  const currentFeedbackReviewers=workflowConfig?.feedback_reviewers||feedbackSteps
   const items = data?.items || []
-  const complete = items.filter(p=>submissionSteps.every(s=>p.submission_progress[s])).length
-  const feedbackPending = items.filter(p=>!p.feedback.Terminate && feedbackSteps.filter(step=>step!=='Terminate').some(step=>!p.feedback[step])).length
+  const complete = items.filter(p=>currentSubmissionSteps.every(s=>p.submission_progress[s])).length
+  const feedbackPending = items.filter(p=>!p.feedback.Terminate && currentFeedbackReviewers.some(step=>!p.feedback[step])).length
   const active = items.length-complete
   const recent = items.slice(0,5)
   return <>
@@ -17,10 +20,10 @@ export function DashboardPage() {
       <Metric icon={<Files/>} tone="blue" label="Total documents" value={items.length} note="Across all disciplines"/>
       <Metric icon={<Clock3/>} tone="amber" label="Active workflows" value={active} note="In submission process"/>
       <Metric icon={<CheckCircle2/>} tone="green" label="Completed" value={complete} note="Fully registered & backed up"/>
-      <Metric icon={<FileCheck2/>} tone="purple" label="Awaiting feedback" value={feedbackPending} note="UTIBER or GDS pending"/>
+      <Metric icon={<FileCheck2/>} tone="purple" label="Awaiting feedback" value={feedbackPending} note={`${currentFeedbackReviewers.join(' or ')} pending`}/>
     </div>
     <div className="dashboard-grid">
-      <section className="panel activity-panel"><div className="panel-heading"><div><h2>Recent documents</h2><p>Latest activity across the register</p></div><Link to="/documents/week">View all <ArrowRight size={14}/></Link></div><div className="activity-list">{recent.map((p,i)=><Link to={`/documents/${i<3?'week':'all'}`} key={p.id}><div className="activity-icon"><FileCheck2/></div><div><strong>{p.document_number}</strong><span>{p.document_type} · {p.discipline} · {p.document_date}</span></div><div className="activity-meta"><strong>{submissionSteps.filter(s=>p.submission_progress[s]).length}/6</strong><span>steps</span></div></Link>)}{!recent.length && <div className="mini-empty">No document activity yet.</div>}</div></section>
+      <section className="panel activity-panel"><div className="panel-heading"><div><h2>Recent documents</h2><p>Latest activity across the register</p></div><Link to="/documents/week">View all <ArrowRight size={14}/></Link></div><div className="activity-list">{recent.map((p,i)=><Link to={`/documents/${i<3?'week':'all'}`} key={p.id}><div className="activity-icon"><FileCheck2/></div><div><strong>{p.document_number}</strong><span>{p.document_type} · {p.discipline} · {p.document_date}</span></div><div className="activity-meta"><strong>{currentSubmissionSteps.filter(s=>p.submission_progress[s]).length}/{currentSubmissionSteps.length}</strong><span>steps</span></div></Link>)}{!recent.length && <div className="mini-empty">No document activity yet.</div>}</div></section>
       <section className="panel overview-panel"><div className="panel-heading"><div><h2>Workflow overview</h2><p>Current submission health</p></div><span className="trend"><TrendingUp size={14}/> Live</span></div><div className="donut-wrap"><div className="donut" style={{'--progress': `${items.length ? Math.round(complete/items.length*100) : 0}%`} as React.CSSProperties}><div><strong>{items.length ? Math.round(complete/items.length*100) : 0}%</strong><span>complete</span></div></div><div className="donut-legend"><div><i className="blue"/><span>In progress</span><strong>{active}</strong></div><div><i className="green"/><span>Completed</span><strong>{complete}</strong></div><div><i className="amber"/><span>Feedback due</span><strong>{feedbackPending}</strong></div></div></div><Link className="panel-action" to="/workflow"><Send size={16}/> Review workflow register <ArrowRight size={15}/></Link></section>
     </div>
   </>

@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { ColumnConfig, MetadataBackup, NotificationList, Package, PackageInput, PackageListResponse, Period } from '../types/package'
+import type { ColumnConfig, CsvImportRow, MetadataBackup, NotificationList, Package, PackageInput, PackageListResponse, Period, WorkflowConfig } from '../types/package'
 
 const client = axios.create({ baseURL: import.meta.env.VITE_API_URL || '/api', timeout: 12_000 })
 
@@ -27,11 +27,14 @@ export const packagesApi = {
 export const settingsApi = {
   listColumns: async () => (await client.get<ColumnConfig[]>('/settings/columns')).data,
   updateColumn: async (field: string, data: Pick<ColumnConfig, 'input_type'|'options'>) => (await client.put<ColumnConfig>(`/settings/columns/${field}`, data)).data,
+  getWorkflow: async () => (await client.get<WorkflowConfig>('/settings/workflow')).data,
+  updateWorkflow: async (data: Pick<WorkflowConfig,'submission_steps'|'feedback_reviewers'|'feedback_status_labels'>) => (await client.put<WorkflowConfig>('/settings/workflow', data)).data,
 }
 
 export const metadataApi = {
   export: async () => (await client.get<MetadataBackup>('/metadata/export')).data,
   import: async (data: MetadataBackup, mode: 'merge'|'replace') => (await client.post('/metadata/import', data, { params: { mode } })).data,
+  importCsv: async (rows: CsvImportRow[], mode: 'merge'|'replace') => (await client.post('/metadata/import-csv', { rows }, { params: { mode } })).data,
 }
 
 export const notificationsApi = {

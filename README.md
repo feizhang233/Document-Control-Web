@@ -7,15 +7,19 @@ DocFlow is a maintainable first-version engineering document control system. It 
 - Dashboard with package and workflow health metrics
 - Documents register with This Week (default), This Month, This Year, and All views
 - Dedicated Workflow and Transmittal registers with correct default sorting
-- Submission progress (six stages) and UTIBER/GDS/Terminate feedback tracking
+- Configurable six-stage Submission progress and two-reviewer Feedback tracking
 - Document Number and document date (day precision) in every package's basic information
 - Search, discipline filter, column sorting, CSV export, and drag-to-reorder
 - Create/edit modal, package detail drawer, optimistic order updates, and saved MySQL state
 - JSON metadata backup/restore with merge and full-replace modes
+- CSV document import/export with merge and full-replace modes
 - Per-column text/dropdown configuration with custom option lists
+- Settings editor for Submission stage names/order, Feedback reviewer names, and A/B/C/P labels
 - Persistent Workflow update notifications with unread state
 - API-key-protected endpoint for daily external Workflow synchronization
-- Click-to-advance Submission and Feedback progress with current-step labels
+- Click-to-advance Submission progress with equally styled current and following step labels
+- Shared draggable Submission slider in document details and editing
+- Sequential Feedback Status codes: A/B/C/P for UTIBER and GDS
 - Duplicate, abandon/restore, and terminate/reopen actions in each row menu
 - Notes and attachment flags with attachment-highlighted rows
 - Multi-rule filters across every visible register column

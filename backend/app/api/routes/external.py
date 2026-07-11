@@ -7,6 +7,7 @@ from app.repositories.package_repository import PackageRepository
 from app.schemas.notification import ExternalWorkflowUpdate
 from app.schemas.package import PackageRead
 from app.services.notification_service import NotificationService
+from app.services.settings_service import SettingsService
 
 router = APIRouter(prefix="/external", tags=["external automation"])
 
@@ -19,9 +20,18 @@ def update_workflow(workflow_number: str, data: ExternalWorkflowUpdate, db: Sess
     repo = PackageRepository(db)
     item = repo.get_by_workflow_number(workflow_number)
     if not item: raise HTTPException(status_code=404, detail="Workflow not found")
+    config = SettingsService(db).get_workflow_config()
+    if data.submission_progress is not None and not set(data.submission_progress).issubset(config.submission_steps): raise HTTPException(status_code=422, detail="Unknown submission progress step")
+    allowed_feedback = set(config.feedback_reviewers) | {"Terminate"}
+    if data.feedback is not None and not set(data.feedback).issubset(allowed_feedback): raise HTTPException(status_code=422, detail="Unknown feedback reviewer")
+    if data.feedback_status is not None and not set(data.feedback_status).issubset(config.feedback_reviewers): raise HTTPException(status_code=422, detail="Unknown feedback status reviewer")
     values = {}
     if data.submission_progress is not None: values["submission_progress"] = {**item.submission_progress, **data.submission_progress}
     if data.feedback is not None: values["feedback"] = {**item.feedback, **data.feedback}
+    if data.feedback_status is not None:
+        statuses = {**item.feedback_status, **data.feedback_status}
+        values["feedback_status"] = statuses
+        values["feedback"] = {**values.get("feedback", item.feedback), **{reviewer: status != "P" for reviewer, status in data.feedback_status.items()}}
     if data.terminate_workflow is not None: values["workflow_terminated"] = data.terminate_workflow
     if not values: raise HTTPException(status_code=400, detail="No workflow status fields supplied")
     item = repo.update(item, values)

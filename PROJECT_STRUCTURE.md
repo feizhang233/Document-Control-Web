@@ -29,4 +29,4 @@
 └── README.md                 Setup, API, testing, and VPS deployment guide
 ```
 
-Routes stay thin; service classes own business behavior and repositories own queries. Column input settings and metadata backups are stored in MySQL and versioned through Alembic. Future external systems should be implemented behind `backend/app/integrations` and invoked by a dedicated worker/scheduler rather than added to HTTP route files.
+Routes stay thin; service classes own business behavior and repositories own queries. Column input settings, workflow structure, and metadata backups are stored in MySQL and versioned through Alembic. Future external systems should be implemented behind `backend/app/integrations` and invoked by a dedicated worker/scheduler rather than added to HTTP route files.

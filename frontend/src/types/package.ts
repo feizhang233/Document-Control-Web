@@ -1,11 +1,13 @@
 export const submissionSteps = [
-  'Transmittal Preparation', 'Signature Process', 'Workflow Initiation',
-  'Email Feedback', 'Data Registration', 'DCO Backup',
+  'Transmittal Preparation', 'DCO Backup', 'Signature Process',
+  'Workflow Initiation', 'Email Feedback', 'Data Registration',
 ] as const
-export const feedbackSteps = ['UTIBER', 'GDS', 'Terminate'] as const
+export const feedbackSteps = ['UTIBER', 'GDS'] as const
+export const feedbackStatusLabels = { A:'Approved', B:'Approved with comments', C:'Rejected', P:'Pending' } as const
 
 export type SubmissionStep = typeof submissionSteps[number]
 export type FeedbackStep = typeof feedbackSteps[number]
+export type FeedbackStatusCode = keyof typeof feedbackStatusLabels
 
 export interface Package {
   id: number
@@ -21,8 +23,9 @@ export interface Package {
   notes: string
   has_attachment: boolean
   is_abandoned: boolean
-  submission_progress: Record<SubmissionStep, boolean>
-  feedback: Record<FeedbackStep, boolean>
+  submission_progress: Record<string, boolean>
+  feedback: Record<string, boolean> & { Terminate: boolean }
+  feedback_status: Record<string, FeedbackStatusCode>
   order_index: number
   created_at: string
   updated_at: string
@@ -57,6 +60,30 @@ export interface MetadataBackup {
   exported_at: string
   packages: Array<Omit<Package, 'id'>>
   column_configs: ColumnConfig[]
+  workflow_config: WorkflowConfig
+}
+
+export interface CsvImportRow {
+  document_number?: string
+  document_date?: string
+  document_type?: string
+  initiator?: string
+  discipline?: string
+  number_of_documents?: number
+  transmittal_number?: string | null
+  workflow_number?: string | null
+  workflow_terminated?: boolean
+  has_attachment?: boolean
+  is_abandoned?: boolean
+  notes?: string
+}
+
+export interface WorkflowConfig {
+  id: number
+  submission_steps: string[]
+  feedback_reviewers: string[]
+  feedback_status_labels: Record<FeedbackStatusCode,string>
+  updated_at: string
 }
 
 export interface WorkflowNotification {

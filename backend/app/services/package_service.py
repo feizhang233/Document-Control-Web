@@ -22,11 +22,11 @@ class PackageService:
         values = data.model_dump(exclude_unset=True)
         if values.get("document_number") is not None and not values["document_number"].strip():
             values["document_number"] = f"DRAFT-{date.today():%Y%m%d}-{uuid4().hex[:8].upper()}"
-        tracked = [key for key in ("workflow_terminated", "submission_progress", "feedback") if key in values and values[key] != getattr(item, key)]
+        tracked = [key for key in ("workflow_terminated", "submission_progress", "feedback", "feedback_status") if key in values and values[key] != getattr(item, key)]
         try:
             updated = self.repo.update(item, values)
             if tracked:
-                labels = {"workflow_terminated":"workflow termination", "submission_progress":"submission progress", "feedback":"feedback"}
+                labels = {"workflow_terminated":"workflow termination", "submission_progress":"submission progress", "feedback":"feedback", "feedback_status":"feedback status"}
                 NotificationService(self.repo.db).create_workflow_update(
                     workflow_number=updated.workflow_number, document_number=updated.document_number,
                     message=f"Updated {', '.join(labels[key] for key in tracked)} for {updated.document_number}.",
@@ -50,7 +50,7 @@ class PackageService:
             "transmittal_number": None, "workflow_number": None, "workflow_terminated": False,
             "notes": item.notes, "has_attachment": item.has_attachment, "is_abandoned": False,
             "submission_progress": {step: False for step in item.submission_progress},
-            "feedback": {step: False for step in item.feedback},
+            "feedback": {step: False for step in item.feedback}, "feedback_status": {reviewer:"P" for reviewer in item.feedback_status},
             "order_index": item.order_index + 1,
         }
         return self.repo.create(values)

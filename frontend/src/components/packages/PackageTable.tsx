@@ -1,22 +1,29 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { DndContext, type DragEndEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { ArrowDown, ArrowUp, ArrowUpDown, Ban, Copy, Eye, GripVertical, MoreHorizontal, OctagonX, Paperclip, Pencil, RotateCcw } from 'lucide-react'
-import type { Package, PageKind } from '../../types/package'
-import { feedbackSteps, submissionSteps } from '../../types/package'
+import { ArrowDown, ArrowUp, ArrowUpDown, Ban, Copy, Eye, GripVertical, MoreHorizontal, OctagonX, Paperclip, Pencil, RotateCcw, Trash2 } from 'lucide-react'
+import type { FeedbackStatusCode, Package, PageKind } from '../../types/package'
 import { ProgressTrack } from '../common/ProgressTrack'
 import { StatusBadge } from '../common/StatusBadge'
+import { FeedbackStatus } from './FeedbackStatus'
 
-interface Props { items: Package[]; kind: PageKind; sortBy: string; sortOrder: 'asc'|'desc'; onSort: (key: string) => void; onView: (item: Package) => void; onEdit: (item: Package) => void; onReorder: (ids: number[]) => void; onAdvance:(item:Package,type:'submission'|'feedback')=>void; onDuplicate:(item:Package)=>void; onToggleAbandoned:(item:Package)=>void; onToggleTerminate:(item:Package)=>void }
+interface Props { items: Package[]; kind: PageKind; submissionSteps:readonly string[]; feedbackReviewers:readonly string[]; feedbackStatusLabels:Record<FeedbackStatusCode,string>; sortBy: string; sortOrder: 'asc'|'desc'; onSort: (key: string) => void; onView: (item: Package) => void; onEdit: (item: Package) => void; onReorder: (ids: number[]) => void; onAdvance:(item:Package,type:'submission'|'feedback')=>void; onDuplicate:(item:Package)=>void; onToggleAbandoned:(item:Package)=>void; onToggleTerminate:(item:Package)=>void; onDelete:(item:Package)=>void }
 
 function Header({ label, field, sortBy, sortOrder, onSort }: { label: string; field?: string; sortBy: string; sortOrder: string; onSort: (s:string)=>void }) {
   return <th>{field ? <button className="sort-button" onClick={() => onSort(field)}>{label}{sortBy === field ? (sortOrder === 'asc' ? <ArrowUp/> : <ArrowDown/>) : <ArrowUpDown/>}</button> : label}</th>
 }
 
-function SortableRow({item,kind,onView,onEdit,onAdvance,onDuplicate,onToggleAbandoned,onToggleTerminate}:{item:Package;kind:PageKind;onView:(p:Package)=>void;onEdit:(p:Package)=>void;onAdvance:Props['onAdvance'];onDuplicate:Props['onDuplicate'];onToggleAbandoned:Props['onToggleAbandoned'];onToggleTerminate:Props['onToggleTerminate']}) {
+function SortableRow({item,kind,submissionSteps,feedbackReviewers,feedbackStatusLabels,onView,onEdit,onAdvance,onDuplicate,onToggleAbandoned,onToggleTerminate,onDelete}:{item:Package;kind:PageKind;submissionSteps:Props['submissionSteps'];feedbackReviewers:Props['feedbackReviewers'];feedbackStatusLabels:Props['feedbackStatusLabels'];onView:(p:Package)=>void;onEdit:(p:Package)=>void;onAdvance:Props['onAdvance'];onDuplicate:Props['onDuplicate'];onToggleAbandoned:Props['onToggleAbandoned'];onToggleTerminate:Props['onToggleTerminate'];onDelete:Props['onDelete']}) {
   const [menuOpen,setMenuOpen]=useState(false)
+  const menuRef=useRef<HTMLDivElement>(null)
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id })
+  useEffect(()=>{
+    const close=(event:MouseEvent)=>{if(menuRef.current&&!menuRef.current.contains(event.target as Node))setMenuOpen(false)}
+    document.addEventListener('mousedown',close)
+    return()=>document.removeEventListener('mousedown',close)
+  },[])
+  useEffect(()=>{if(isDragging)setMenuOpen(false)},[isDragging])
   const style = { transform: CSS.Transform.toString(transform), transition }
   const first = kind === 'workflow' ? item.workflow_number : kind === 'transmittal' ? item.transmittal_number : item.document_number
   return <tr ref={setNodeRef} style={style} className={`${isDragging?'dragging':''} ${item.has_attachment?'has-attachment':''} ${item.is_abandoned?'abandoned':''}`} onDoubleClick={() => onView(item)}>
@@ -29,12 +36,12 @@ function SortableRow({item,kind,onView,onEdit,onAdvance,onDuplicate,onToggleAban
     <td>{item.discipline}</td>
     <td className="number-cell">{item.number_of_documents}</td>
     {kind === 'documents' && <><td className="mono-cell">{item.transmittal_number || '—'}</td><td className="mono-cell">{item.workflow_number || '—'}</td><td className="progress-cell"><ProgressTrack steps={submissionSteps} values={item.submission_progress} disabled={item.is_abandoned} onAdvance={()=>onAdvance(item,'submission')}/></td></>}
-    <td className="progress-cell feedback"><ProgressTrack steps={feedbackSteps} values={item.feedback} disabled={item.is_abandoned||item.feedback.Terminate} disabledLabel={item.is_abandoned?'Submission stopped':'Terminated'} compact onAdvance={()=>onAdvance(item,'feedback')}/></td>
-    <td className="action-cell"><button onClick={event=>{event.stopPropagation();onView(item)}} aria-label="View document"><Eye size={17}/></button><button onClick={event=>{event.stopPropagation();onEdit(item)}} aria-label="Edit document"><Pencil size={16}/></button><div className="row-menu"><button onClick={event=>{event.stopPropagation();setMenuOpen(value=>!value)}} aria-label="More actions"><MoreHorizontal size={18}/></button>{menuOpen&&<div className="row-menu-popover" onClick={event=>event.stopPropagation()}><button onClick={()=>{onDuplicate(item);setMenuOpen(false)}}><Copy/>Duplicate document</button><button onClick={()=>{onToggleAbandoned(item);setMenuOpen(false)}}>{item.is_abandoned?<RotateCcw/>:<Ban/>}{item.is_abandoned?'Restore submission':'Abandon submission'}</button><button onClick={()=>{onToggleTerminate(item);setMenuOpen(false)}}>{item.workflow_terminated?<RotateCcw/>:<OctagonX/>}{item.workflow_terminated?'Reopen workflow':'Terminate workflow'}</button></div>}</div></td>
+    <td className="progress-cell feedback"><FeedbackStatus item={item} reviewers={feedbackReviewers} statusLabels={feedbackStatusLabels} compact/></td>
+    <td className="action-cell"><button onClick={event=>{event.stopPropagation();setMenuOpen(false);onView(item)}} aria-label="View document"><Eye size={17}/></button><button onClick={event=>{event.stopPropagation();setMenuOpen(false);onEdit(item)}} aria-label="Edit document"><Pencil size={16}/></button><div className="row-menu" ref={menuRef}><button onClick={event=>{event.stopPropagation();setMenuOpen(value=>!value)}} aria-label="More actions"><MoreHorizontal size={18}/></button>{menuOpen&&<div className="row-menu-popover" onClick={event=>event.stopPropagation()}><button onClick={()=>{setMenuOpen(false);onDuplicate(item)}}><Copy/>Duplicate document</button><button onClick={()=>{setMenuOpen(false);onToggleAbandoned(item)}}>{item.is_abandoned?<RotateCcw/>:<Ban/>}{item.is_abandoned?'Restore submission':'Abandon submission'}</button><button onClick={()=>{setMenuOpen(false);onToggleTerminate(item)}}>{item.workflow_terminated?<RotateCcw/>:<OctagonX/>}{item.workflow_terminated?'Reopen workflow':'Terminate workflow'}</button><button className="danger" onClick={()=>{setMenuOpen(false);if(window.confirm(`Permanently delete ${item.document_number}? This cannot be undone.`))onDelete(item)}}><Trash2/>Delete document</button></div>}</div></td>
   </tr>
 }
 
-export function PackageTable({items,kind,sortBy,sortOrder,onSort,onView,onEdit,onReorder,onAdvance,onDuplicate,onToggleAbandoned,onToggleTerminate}:Props) {
+export function PackageTable({items,kind,submissionSteps,feedbackReviewers,feedbackStatusLabels,sortBy,sortOrder,onSort,onView,onEdit,onReorder,onAdvance,onDuplicate,onToggleAbandoned,onToggleTerminate,onDelete}:Props) {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
   const ids = useMemo(() => items.map(i => i.id), [items])
   const dragEnd = ({ active, over }: DragEndEvent) => {
@@ -46,5 +53,5 @@ export function PackageTable({items,kind,sortBy,sortOrder,onSort,onView,onEdit,o
   return <div className="table-scroll"><DndContext sensors={sensors} onDragEnd={dragEnd}><table className="package-table"><thead><tr>
     <th className="drag-cell"/><Header label={primary[0]} field={primary[1]} {...{sortBy,sortOrder,onSort}}/><Header label="Date" field="document_date" {...{sortBy,sortOrder,onSort}}/>{kind==='workflow'&&<Header label="Terminate Workflow" field="workflow_terminated" {...{sortBy,sortOrder,onSort}}/>}<Header label="Document Type" field="document_type" {...{sortBy,sortOrder,onSort}}/><Header label="Initiator" field="initiator" {...{sortBy,sortOrder,onSort}}/><Header label="Discipline" field="discipline" {...{sortBy,sortOrder,onSort}}/><Header label="Docs" field="number_of_documents" {...{sortBy,sortOrder,onSort}}/>
     {kind === 'documents' && <><Header label="Transmittal No." {...{sortBy,sortOrder,onSort}}/><Header label="Workflow No." {...{sortBy,sortOrder,onSort}}/><Header label="Submission Progress" {...{sortBy,sortOrder,onSort}}/></>}<Header label="Feedback" {...{sortBy,sortOrder,onSort}}/><th/>
-  </tr></thead><SortableContext items={ids} strategy={verticalListSortingStrategy}><tbody>{items.map(item => <SortableRow key={item.id} {...{item,kind,onView,onEdit,onAdvance,onDuplicate,onToggleAbandoned,onToggleTerminate}}/>)}</tbody></SortableContext></table></DndContext></div>
+  </tr></thead><SortableContext items={ids} strategy={verticalListSortingStrategy}><tbody>{items.map(item => <SortableRow key={item.id} {...{item,kind,submissionSteps,feedbackReviewers,feedbackStatusLabels,onView,onEdit,onAdvance,onDuplicate,onToggleAbandoned,onToggleTerminate,onDelete}}/>)}</tbody></SortableContext></table></DndContext></div>
 }
