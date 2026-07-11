@@ -1,0 +1,46 @@
+services:
+  db:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-docflow}
+      MYSQL_USER: ${MYSQL_USER:-docflow}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-docflow_dev_password}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_dev_password}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-root_dev_password}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    ports:
+      - "3306:3306"
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: mysql+pymysql://${MYSQL_USER:-docflow}:${MYSQL_PASSWORD:-docflow_dev_password}@db:3306/${MYSQL_DATABASE:-docflow}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost}
+      SEED_DEMO_DATA: ${SEED_DEMO_DATA:-true}
+      EXTERNAL_API_KEY: ${EXTERNAL_API_KEY:-change-me-in-production}
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: /api
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+
+volumes:
+  mysql_data:

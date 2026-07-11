@@ -1,0 +1,76 @@
+export const submissionSteps = [
+  'Transmittal Preparation', 'Signature Process', 'Workflow Initiation',
+  'Email Feedback', 'Data Registration', 'DCO Backup',
+] as const
+export const feedbackSteps = ['UTIBER', 'GDS', 'Terminate'] as const
+
+export type SubmissionStep = typeof submissionSteps[number]
+export type FeedbackStep = typeof feedbackSteps[number]
+
+export interface Package {
+  id: number
+  document_number: string
+  document_date: string
+  document_type: string
+  initiator: string
+  discipline: string
+  number_of_documents: number
+  transmittal_number: string | null
+  workflow_number: string | null
+  workflow_terminated: boolean
+  notes: string
+  has_attachment: boolean
+  is_abandoned: boolean
+  submission_progress: Record<SubmissionStep, boolean>
+  feedback: Record<FeedbackStep, boolean>
+  order_index: number
+  created_at: string
+  updated_at: string
+}
+
+export interface PackageInput extends Omit<Package, 'id' | 'created_at' | 'updated_at'> {}
+
+export interface PackageListResponse {
+  items: Package[]
+  total: number
+  page: number
+  page_size: number
+}
+
+export type Period = 'week' | 'month' | 'year' | 'all'
+export type PageKind = 'documents' | 'workflow' | 'transmittal'
+
+export type FilterField = 'document_number'|'document_date'|'document_type'|'initiator'|'discipline'|'number_of_documents'|'transmittal_number'|'workflow_number'|'submission_progress'|'feedback'|'has_attachment'|'is_abandoned'|'workflow_terminated'
+export interface FilterRule { id: string; field: FilterField; operator: 'contains'|'equals'|'not_equals'; value: string }
+
+export interface ColumnConfig {
+  id: number
+  field_name: keyof Pick<Package, 'document_number'|'document_date'|'document_type'|'initiator'|'discipline'|'number_of_documents'|'transmittal_number'|'workflow_number'>
+  display_name: string
+  input_type: 'text' | 'select'
+  options: string[]
+  updated_at: string
+}
+
+export interface MetadataBackup {
+  format_version: '1.0'
+  exported_at: string
+  packages: Array<Omit<Package, 'id'>>
+  column_configs: ColumnConfig[]
+}
+
+export interface WorkflowNotification {
+  id: number
+  notification_type: string
+  title: string
+  message: string
+  workflow_number: string | null
+  document_number: string | null
+  is_read: boolean
+  created_at: string
+}
+
+export interface NotificationList {
+  items: WorkflowNotification[]
+  unread_count: number
+}

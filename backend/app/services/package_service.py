@@ -1,0 +1,56 @@
+from datetime import date
+from uuid import uuid4
+
+from fastapi import HTTPException
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
+from app.repositories.package_repository import PackageRepository
+from app.schemas.package import PackageCreate, PackageUpdate
+from app.services.notification_service import NotificationService
+
+class PackageService:
+    def __init__(self, db: Session): self.repo = PackageRepository(db)
+    def create(self, data: PackageCreate):
+        values = data.model_dump()
+        if not values["document_number"].strip():
+            values["document_number"] = f"DRAFT-{date.today():%Y%m%d}-{uuid4().hex[:8].upper()}"
+        try: return self.repo.create(values)
+        except IntegrityError:
+            self.repo.db.rollback(); raise HTTPException(status_code=409, detail="Document number already exists")
+    def update(self, package_id: int, data: PackageUpdate):
+        item = self.require(package_id)
+        values = data.model_dump(exclude_unset=True)
+        if values.get("document_number") is not None and not values["document_number"].strip():
+            values["document_number"] = f"DRAFT-{date.today():%Y%m%d}-{uuid4().hex[:8].upper()}"
+        tracked = [key for key in ("workflow_terminated", "submission_progress", "feedback") if key in values and values[key] != getattr(item, key)]
+        try:
+            updated = self.repo.update(item, values)
+            if tracked:
+                labels = {"workflow_terminated":"workflow termination", "submission_progress":"submission progress", "feedback":"feedback"}
+                NotificationService(self.repo.db).create_workflow_update(
+                    workflow_number=updated.workflow_number, document_number=updated.document_number,
+                    message=f"Updated {', '.join(labels[key] for key in tracked)} for {updated.document_number}.",
+                )
+            return updated
+        except IntegrityError:
+            self.repo.db.rollback(); raise HTTPException(status_code=409, detail="Document number already exists")
+    def require(self, package_id: int):
+        item = self.repo.get(package_id)
+        if not item: raise HTTPException(status_code=404, detail="Package not found")
+        return item
+    def duplicate(self, package_id: int):
+        item = self.require(package_id)
+        base = f"{item.document_number}-COPY"
+        number = base; suffix = 1
+        while self.repo.get_by_document_number(number):
+            suffix += 1; number = f"{base}-{suffix}"
+        values = {
+            "document_number": number, "document_date": item.document_date, "document_type": item.document_type,
+            "initiator": item.initiator, "discipline": item.discipline, "number_of_documents": item.number_of_documents,
+            "transmittal_number": None, "workflow_number": None, "workflow_terminated": False,
+            "notes": item.notes, "has_attachment": item.has_attachment, "is_abandoned": False,
+            "submission_progress": {step: False for step in item.submission_progress},
+            "feedback": {step: False for step in item.feedback},
+            "order_index": item.order_index + 1,
+        }
+        return self.repo.create(values)
