@@ -43,7 +43,34 @@ export const notificationsApi = {
   markAllRead: async () => client.patch('/notifications/read-all'),
 }
 
+function formatApiDetail(detail: unknown): string | null {
+  if (detail == null) return null
+  if (typeof detail === 'string') return detail
+  if (Array.isArray(detail)) {
+    const messages = detail.map((item) => {
+      if (typeof item === 'string') return item
+      if (item && typeof item === 'object') {
+        const entry = item as { loc?: unknown[]; msg?: unknown }
+        const path = Array.isArray(entry.loc)
+          ? entry.loc.filter((part) => part !== 'body').join('.')
+          : ''
+        const message = typeof entry.msg === 'string' ? entry.msg : 'Invalid value'
+        return path ? `${path}: ${message}` : message
+      }
+      return null
+    }).filter(Boolean)
+    return messages.length ? messages.join('; ') : null
+  }
+  if (typeof detail === 'object') {
+    try { return JSON.stringify(detail) } catch { return 'Request failed' }
+  }
+  return String(detail)
+}
+
 export const getApiError = (error: unknown) => {
-  if (axios.isAxiosError(error)) return error.response?.data?.detail || error.message
+  if (axios.isAxiosError(error)) {
+    return formatApiDetail(error.response?.data?.detail) || error.message || 'Request failed'
+  }
+  if (error instanceof Error) return error.message
   return 'An unexpected error occurred.'
 }

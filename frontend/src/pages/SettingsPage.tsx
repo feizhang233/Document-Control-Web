@@ -93,6 +93,27 @@ function parseBoolean(value:string,field:string,row:number){
   throw new Error(`Row ${row}: ${field} must be true/false, yes/no, or 1/0`)
 }
 
+function parseOptionalDate(value:string,row:number):string|undefined{
+  const trimmed=value.trim()
+  if(!trimmed)return undefined
+  // Accept ISO dates and common spreadsheet day-first / month-first forms.
+  const iso=trimmed.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/)
+  const slash=trimmed.match(/^(\d{1,2})[\/.](\d{1,2})[\/.](\d{4})$/)
+  let year=0,month=0,day=0
+  if(iso){[year,month,day]=[Number(iso[1]),Number(iso[2]),Number(iso[3])]}
+  else if(slash){
+    const a=Number(slash[1]),b=Number(slash[2]),c=Number(slash[3])
+    // Prefer day/month/year when the first part is > 12; otherwise treat as month/day/year.
+    if(a>12){[day,month,year]=[a,b,c]}
+    else if(b>12){[month,day,year]=[a,b,c]}
+    else{[day,month,year]=[a,b,c]}
+  }else throw new Error(`Row ${row}: document_date must be YYYY-MM-DD (got "${trimmed}")`)
+  if(month<1||month>12||day<1||day>31)throw new Error(`Row ${row}: document_date is not a valid calendar date`)
+  const date=new Date(Date.UTC(year,month-1,day))
+  if(date.getUTCFullYear()!==year||date.getUTCMonth()!==month-1||date.getUTCDate()!==day)throw new Error(`Row ${row}: document_date is not a valid calendar date`)
+  return `${String(year).padStart(4,'0')}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`
+}
+
 function parseDocumentCsv(text:string):CsvImportRow[]{
   const records=parseCsv(text)
   if(records.length<2)throw new Error('CSV must include a header row and at least one document')
@@ -107,10 +128,15 @@ function parseDocumentCsv(text:string):CsvImportRow[]{
     const has=(field:string)=>headers.includes(field)
     const textValue=(field:string)=>cells[field].trim()
     const value:CsvImportRow={}
-    for(const field of ['document_number','document_date','document_type','initiator','discipline','notes'] as const)if(has(field))value[field]=field==='notes'?cells[field]:textValue(field)
+    const rowNumber=rowIndex+2
+    // Only send fields that actually have values so empty cells do not fail API validation.
+    if(has('document_number')&&textValue('document_number'))value.document_number=textValue('document_number')
+    if(has('document_date')){const date=parseOptionalDate(cells.document_date??'',rowNumber);if(date)value.document_date=date}
+    for(const field of ['document_type','initiator','discipline'] as const)if(has(field)&&textValue(field))value[field]=textValue(field)
+    if(has('notes'))value.notes=cells.notes??''
     for(const field of ['transmittal_number','workflow_number'] as const)if(has(field))value[field]=textValue(field)||null
-    if(has('number_of_documents')&&textValue('number_of_documents')){const number=Number(textValue('number_of_documents'));if(!Number.isInteger(number)||number<1)throw new Error(`Row ${rowIndex+2}: number_of_documents must be a positive integer`);value.number_of_documents=number}
-    for(const field of ['workflow_terminated','has_attachment','is_abandoned'] as const)if(has(field)){const parsed=parseBoolean(cells[field],field,rowIndex+2);if(parsed!==undefined)value[field]=parsed}
+    if(has('number_of_documents')&&textValue('number_of_documents')){const number=Number(textValue('number_of_documents'));if(!Number.isInteger(number)||number<1)throw new Error(`Row ${rowNumber}: number_of_documents must be a positive integer`);value.number_of_documents=number}
+    for(const field of ['workflow_terminated','has_attachment','is_abandoned'] as const)if(has(field)){const parsed=parseBoolean(cells[field],field,rowNumber);if(parsed!==undefined)value[field]=parsed}
     return value
   })
 }

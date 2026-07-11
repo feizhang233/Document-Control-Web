@@ -85,5 +85,37 @@ class CsvImportRow(BaseModel):
     is_abandoned: bool | None = None
     notes: str | None = Field(default=None, max_length=5000)
 
+    @field_validator(
+        "document_number", "document_type", "initiator", "discipline",
+        "transmittal_number", "workflow_number", "notes",
+        mode="before",
+    )
+    @classmethod
+    def empty_string_to_none(cls, value):
+        if isinstance(value, str) and not value.strip():
+            return None
+        return value
+
+    @field_validator("document_date", mode="before")
+    @classmethod
+    def normalize_document_date(cls, value):
+        if value is None:
+            return None
+        if isinstance(value, date) and not isinstance(value, datetime):
+            return value
+        if isinstance(value, datetime):
+            return value.date()
+        if isinstance(value, str):
+            text = value.strip()
+            if not text:
+                return None
+            for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%m/%d/%Y", "%d.%m.%Y", "%Y/%m/%d"):
+                try:
+                    return datetime.strptime(text, fmt).date()
+                except ValueError:
+                    continue
+            raise ValueError("document_date must be a valid date (YYYY-MM-DD preferred)")
+        return value
+
 class CsvMetadataImport(BaseModel):
     rows: list[CsvImportRow] = Field(min_length=1, max_length=10000)

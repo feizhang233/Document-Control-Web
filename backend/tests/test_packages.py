@@ -67,6 +67,18 @@ def test_csv_import_merges_and_replaces_documents(client):
     assert replaced.status_code == 200 and replaced.json()["packages_created"] == 1
     assert client.get("/api/packages", params={"period":"all"}).json()["total"] == 1
 
+def test_csv_import_accepts_empty_and_slash_dates(client):
+    result = client.post("/api/metadata/import-csv?mode=merge", json={"rows":[
+        {"document_number":"DOC-EMPTY-DATE","document_date":"","document_type":"Drawing","initiator":"","discipline":""},
+        {"document_number":"DOC-SLASH-DATE","document_date":"12/07/2026","document_type":"Report"},
+    ]})
+    assert result.status_code == 200, result.text
+    assert result.json()["packages_created"] == 2
+    empty = client.get("/api/packages", params={"period":"all","search":"DOC-EMPTY-DATE"}).json()["items"][0]
+    slash = client.get("/api/packages", params={"period":"all","search":"DOC-SLASH-DATE"}).json()["items"][0]
+    assert empty["document_type"] == "Drawing"
+    assert slash["document_date"] == "2026-07-12"
+
 def test_workflow_configuration_reorders_and_remaps_existing_data(client):
     data = payload()
     data["submission_progress"][SUBMISSION_STEPS[0]] = True
