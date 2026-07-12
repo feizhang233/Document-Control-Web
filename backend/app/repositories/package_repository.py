@@ -47,8 +47,8 @@ class PackageRepository:
         for key, value in values.items(): setattr(item, key, value)
         self.db.commit(); self.db.refresh(item); return item
     def delete(self, item: Package): self.db.delete(item); self.db.commit()
-    def reorder(self, ids: list[int]):
+    def reorder(self, ids: list[int], start_index: int = 0):
         items = {p.id:p for p in self.db.scalars(select(Package).where(Package.id.in_(ids)))}
         if len(items) != len(set(ids)): return False
-        for index, item_id in enumerate(ids): items[item_id].order_index = index
+        for index, item_id in enumerate(ids, start=start_index): items[item_id].order_index = index
         self.db.commit(); return True

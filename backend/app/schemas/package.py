@@ -73,4 +73,6 @@ class PackageList(BaseModel):
     total: int
     page: int
     page_size: int
-class ReorderRequest(BaseModel): package_ids: list[int] = Field(min_length=1)
+class ReorderRequest(BaseModel):
+    package_ids: list[int] = Field(min_length=1)
+    start_index: int = Field(default=0, ge=0)

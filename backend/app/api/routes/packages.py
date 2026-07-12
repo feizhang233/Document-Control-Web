@@ -26,5 +26,5 @@ def delete_package(package_id:int,db:Session=Depends(get_db)):
     service=PackageService(db); service.repo.delete(service.require(package_id)); return Response(status_code=204)
 @router.post("/reorder", status_code=status.HTTP_204_NO_CONTENT)
 def reorder_packages(data:ReorderRequest,db:Session=Depends(get_db)):
-    if not PackageRepository(db).reorder(data.package_ids): raise HTTPException(status_code=400,detail="One or more package IDs do not exist")
+    if not PackageRepository(db).reorder(data.package_ids, data.start_index): raise HTTPException(status_code=400,detail="One or more package IDs do not exist")
     return Response(status_code=204)

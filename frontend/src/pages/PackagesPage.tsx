@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Filter, Plus, Search } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Filter, Plus, Search } from 'lucide-react'
 import { useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { getApiError, packagesApi, settingsApi } from '../lib/api'
@@ -29,9 +29,11 @@ export function PackagesPage({ kind }: { kind: PageKind }) {
   const [editing, setEditing] = useState<Package|null>(null)
   const [editorOpen, setEditorOpen] = useState(false)
   const [filters, setFilters] = useState<FilterRule[]>([])
+  const [page,setPage]=useState(1)
+  const [pageSize,setPageSize]=useState(200)
   const queryClient = useQueryClient()
-  const params = { period, search: search || undefined, discipline: discipline || undefined, sort_by: sortBy, sort_order: sortOrder, page_size: 200 }
-  const query = useQuery({ queryKey: ['packages', params], queryFn: () => packagesApi.list(params) })
+  const params = { period, search: search || undefined, discipline: discipline || undefined, sort_by: sortBy, sort_order: sortOrder, page, page_size: pageSize }
+  const query = useQuery({ queryKey: ['packages', params], queryFn: () => packagesApi.list(params), placeholderData:previous=>previous })
   const configs = useQuery({ queryKey:['column-configs'], queryFn:settingsApi.listColumns })
   const workflowQuery = useQuery({ queryKey:['workflow-config'], queryFn:settingsApi.getWorkflow })
   const workflowConfig=workflowQuery.data||defaultWorkflowConfig
@@ -39,7 +41,7 @@ export function PackagesPage({ kind }: { kind: PageKind }) {
   const currentFeedbackReviewers=workflowConfig.feedback_reviewers
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['packages'] })
   const save = useMutation({ mutationFn: (data: PackageInput) => editing ? packagesApi.update(editing.id, data) : packagesApi.create(data), onSuccess: () => { toast.success(editing ? 'Document updated' : 'Document created'); setEditorOpen(false); refresh() }, onError: e => toast.error(getApiError(e)) })
-  const reorder = useMutation({ mutationFn: packagesApi.reorder, onMutate: async ids => { await queryClient.cancelQueries({ queryKey: ['packages', params] }); const prev = queryClient.getQueryData(['packages', params]); queryClient.setQueryData(['packages', params], (old: typeof query.data) => old ? { ...old, items: ids.map(id => old.items.find(i=>i.id===id)!).filter(Boolean) } : old); return { prev } }, onError: (_e,_v,c) => { if(c?.prev) queryClient.setQueryData(['packages',params],c.prev); toast.error('Could not save the new order') }, onSettled: refresh })
+  const reorder = useMutation({ mutationFn: packagesApi.reorder, onMutate: async ({ids}) => { await queryClient.cancelQueries({ queryKey: ['packages', params] }); const prev = queryClient.getQueryData(['packages', params]); queryClient.setQueryData(['packages', params], (old: typeof query.data) => old ? { ...old, items: ids.map(id => old.items.find(i=>i.id===id)!).filter(Boolean) } : old); return { prev } }, onError: (_e,_v,c) => { if(c?.prev) queryClient.setQueryData(['packages',params],c.prev); toast.error('Could not save the new order') }, onSettled: refresh })
   const quickUpdate = useMutation({mutationFn:({id,data}:{id:number;data:Partial<PackageInput>})=>packagesApi.update(id,data),onSuccess:updated=>{if(selected?.id===updated.id)setSelected(updated);refresh();queryClient.invalidateQueries({queryKey:['notifications']})},onError:e=>toast.error(getApiError(e))})
   const duplicate = useMutation({mutationFn:(item:Package)=>packagesApi.duplicate(item.id),onSuccess:item=>{toast.success(`Duplicated as ${item.document_number}`);refresh()},onError:e=>toast.error(getApiError(e))})
   const remove = useMutation({mutationFn:(item:Package)=>packagesApi.remove(item.id),onSuccess:(_result,item)=>{toast.success(`${item.document_number} deleted permanently`);if(selected?.id===item.id)setSelected(null);refresh();queryClient.invalidateQueries({queryKey:['notifications']})},onError:e=>toast.error(getApiError(e))})
@@ -66,6 +68,9 @@ export function PackagesPage({ kind }: { kind: PageKind }) {
     onSettled:()=>queryClient.invalidateQueries({queryKey:['column-configs']}),
   })
   const titlePeriod = period === 'week' ? 'This week' : period === 'month' ? 'This month' : period === 'year' ? 'This year' : 'All records'
+  const totalPages=Math.max(1,Math.ceil((query.data?.total||0)/pageSize))
+  useEffect(()=>setPage(1),[period,search,discipline,sortBy,sortOrder,pageSize])
+  useEffect(()=>{if(query.data&&page>totalPages)setPage(totalPages)},[query.data,page,totalPages])
   const disciplines = useMemo(() => ['Civil','Structural','Architectural','Electrical','Mechanical','Geotechnical'], [])
   const visibleItems=useMemo(()=>{
     const items=query.data?.items||[]
@@ -92,9 +97,9 @@ export function PackagesPage({ kind }: { kind: PageKind }) {
       {query.isLoading ? <LoadingState/> : query.isError ? <ErrorState message={getApiError(query.error)} retry={()=>query.refetch()}/> : !visibleItems.length ? <EmptyState filtered={!!search || !!discipline || !!filters.length}/> : <PackageTable
         items={visibleItems} kind={kind} configs={configs.data||[]} submissionSteps={currentSubmissionSteps} feedbackReviewers={currentFeedbackReviewers} feedbackStatusLabels={workflowConfig.feedback_status_labels} feedbackStatusColors={workflowConfig.feedback_status_colors} {...{sortBy,sortOrder}}
         onSort={key => { if(sortBy===key) setSortOrder(v=>v==='asc'?'desc':'asc'); else {setSortBy(key);setSortOrder('asc')} }} onView={setSelected} onEdit={item=>{setEditing(item);setEditorOpen(true)}}
-        onColumnResize={(field,width)=>{const config=configs.data?.find(item=>item.field_name===field);if(config)resizeColumn.mutate({config,width})}} onReorder={ids=>reorder.mutate(ids)} onAdvance={advance} onDuplicate={item=>duplicate.mutate(item)} onToggleAbandoned={item=>quickUpdate.mutate({id:item.id,data:{is_abandoned:!item.is_abandoned}})} onToggleTerminate={item=>quickUpdate.mutate({id:item.id,data:{workflow_terminated:!item.workflow_terminated}})} onDelete={item=>remove.mutate(item)}
+        onColumnResize={(field,width)=>{const config=configs.data?.find(item=>item.field_name===field);if(config)resizeColumn.mutate({config,width})}} onReorder={ids=>reorder.mutate({ids,startIndex:(page-1)*pageSize})} onAdvance={advance} onDuplicate={item=>duplicate.mutate(item)} onToggleAbandoned={item=>quickUpdate.mutate({id:item.id,data:{is_abandoned:!item.is_abandoned}})} onToggleTerminate={item=>quickUpdate.mutate({id:item.id,data:{workflow_terminated:!item.workflow_terminated}})} onDelete={item=>remove.mutate(item)}
       />}
-      {!!visibleItems.length && <div className="table-footer"><span>Showing {visibleItems.length} of {query.data?.total} documents</span><span>Click a progress bar to advance · Drag rows to reprioritize</span></div>}
+      {!!visibleItems.length && <div className="table-footer pagination-footer"><span>{filters.length?`Showing ${visibleItems.length} matching rows on this page`:`Showing ${(page-1)*pageSize+1}–${Math.min(page*pageSize,query.data?.total||0)} of ${query.data?.total||0} documents`}</span><div className="pagination-controls"><label>Rows per page <select value={pageSize} onChange={event=>setPageSize(Number(event.target.value))}><option value={50}>50</option><option value={100}>100</option><option value={200}>200</option></select></label><span>Page {page} of {totalPages}</span><button aria-label="First page" disabled={page===1} onClick={()=>setPage(1)}><ChevronsLeft/></button><button aria-label="Previous page" disabled={page===1} onClick={()=>setPage(value=>Math.max(1,value-1))}><ChevronLeft/></button><button aria-label="Next page" disabled={page===totalPages} onClick={()=>setPage(value=>Math.min(totalPages,value+1))}><ChevronRight/></button><button aria-label="Last page" disabled={page===totalPages} onClick={()=>setPage(totalPages)}><ChevronsRight/></button></div></div>}
     </section>
     <PackageDrawer item={selected} configs={configs.data||[]} workflowConfig={workflowConfig} saving={quickUpdate.isPending} onUpdate={data=>selected&&quickUpdate.mutate({id:selected.id,data})} onClose={()=>setSelected(null)}/>
     <PackageEditor item={editing} configs={configs.data||[]} workflowConfig={workflowConfig} open={editorOpen} saving={save.isPending} onClose={()=>setEditorOpen(false)} onSave={data=>save.mutate(data)}/>

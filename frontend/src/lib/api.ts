@@ -20,7 +20,7 @@ export const packagesApi = {
   create: async (data: PackageInput) => (await client.post<Package>('/packages', data)).data,
   update: async (id: number, data: Partial<PackageInput>) => (await client.patch<Package>(`/packages/${id}`, data)).data,
   remove: async (id: number) => client.delete(`/packages/${id}`),
-  reorder: async (ids: number[]) => client.post('/packages/reorder', { package_ids: ids }),
+  reorder: async ({ids,startIndex}:{ids:number[];startIndex:number}) => client.post('/packages/reorder', { package_ids: ids, start_index:startIndex }),
   duplicate: async (id: number) => (await client.post<Package>(`/packages/${id}/duplicate`)).data,
 }
 
