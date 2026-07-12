@@ -15,6 +15,10 @@ def list_notifications(limit: int = Query(30, ge=1, le=100), db: Session = Depen
 def mark_all_read(db: Session = Depends(get_db)):
     NotificationService(db).mark_all_read(); return Response(status_code=204)
 
+@router.delete("", status_code=204)
+def clear_notifications(db: Session = Depends(get_db)):
+    NotificationService(db).clear_all(); return Response(status_code=204)
+
 @router.patch("/{notification_id}/read", response_model=NotificationRead)
 def mark_read(notification_id: int, db: Session = Depends(get_db)):
     item = NotificationService(db).mark_read(notification_id)

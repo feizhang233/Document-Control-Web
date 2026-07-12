@@ -191,3 +191,5 @@ def test_external_workflow_update_creates_notification(client):
     assert notifications["items"][0]["workflow_number"] == "WF-001"
     assert client.patch("/api/notifications/read-all").status_code == 204
     assert client.get("/api/notifications").json()["unread_count"] == 0
+    assert client.delete("/api/notifications").status_code == 204
+    assert client.get("/api/notifications").json()["items"] == []

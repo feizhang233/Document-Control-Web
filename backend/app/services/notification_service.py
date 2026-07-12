@@ -1,4 +1,4 @@
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 from app.models.notification import Notification
 
@@ -24,3 +24,5 @@ class NotificationService:
     def mark_all_read(self):
         for item in self.db.scalars(select(Notification).where(Notification.is_read.is_(False))): item.is_read = True
         self.db.commit()
+    def clear_all(self):
+        self.db.execute(delete(Notification)); self.db.commit()

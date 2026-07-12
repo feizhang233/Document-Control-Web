@@ -16,6 +16,13 @@ export interface ListParams {
 
 export const packagesApi = {
   list: async (params: ListParams) => (await client.get<PackageListResponse>('/packages', { params })).data,
+  listAll: async (params: Omit<ListParams,'page'|'page_size'> = {}) => {
+    const first=(await client.get<PackageListResponse>('/packages',{params:{...params,page:1,page_size:200}})).data
+    if(first.items.length>=first.total)return first
+    const pages=Array.from({length:Math.ceil(first.total/200)-1},(_,index)=>index+2)
+    const rest=await Promise.all(pages.map(page=>client.get<PackageListResponse>('/packages',{params:{...params,page,page_size:200}}).then(response=>response.data.items)))
+    return {...first,items:[...first.items,...rest.flat()],page_size:first.total}
+  },
   get: async (id: number) => (await client.get<Package>(`/packages/${id}`)).data,
   create: async (data: PackageInput) => (await client.post<Package>('/packages', data)).data,
   update: async (id: number, data: Partial<PackageInput>) => (await client.patch<Package>(`/packages/${id}`, data)).data,
@@ -39,9 +46,10 @@ export const metadataApi = {
 }
 
 export const notificationsApi = {
-  list: async () => (await client.get<NotificationList>('/notifications')).data,
+  list: async (limit=30) => (await client.get<NotificationList>('/notifications',{params:{limit}})).data,
   markRead: async (id: number) => client.patch(`/notifications/${id}/read`),
   markAllRead: async () => client.patch('/notifications/read-all'),
+  clear: async () => client.delete('/notifications'),
 }
 
 function formatApiDetail(detail: unknown): string | null {
