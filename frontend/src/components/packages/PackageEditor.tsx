@@ -7,9 +7,11 @@ import { SubmissionSlider } from './SubmissionSlider'
 const emptyProgress = Object.fromEntries(submissionSteps.map(s => [s, false])) as PackageInput['submission_progress']
 const emptyFeedback = {...Object.fromEntries(feedbackSteps.map(s => [s, false])),Terminate:false} as PackageInput['feedback']
 const today = () => new Date().toISOString().slice(0, 10)
+const defaultTransmittalNumber = (documentType: string) => `NFS-PCH-TRA-${documentType === 'PZI' ? 'PZI' : documentType === 'RFI' ? 'RFI' : 'RPT'}-`
+const automaticTransmittalNumbers = new Set(['NFS-PCH-TRA-PZI-', 'NFS-PCH-TRA-RFI-', 'NFS-PCH-TRA-RPT-'])
 const blank: PackageInput = {
   document_number: '', document_title: '', document_date: today(), document_type: 'Drawing', initiator: '', discipline: '', number_of_documents: 1,
-  transmittal_number: '', workflow_number: '', workflow_terminated:false, notes:'', has_attachment:false, is_abandoned:false,
+  transmittal_number: defaultTransmittalNumber('Drawing'), workflow_number: '', workflow_terminated:false, notes:'', has_attachment:false, is_abandoned:false,
   submission_progress: emptyProgress, feedback: emptyFeedback, feedback_status:{UTIBER:'P',GDS:'P'}, order_index: 0,
 }
 type BaseField = InputColumnField
@@ -38,12 +40,19 @@ export function PackageEditor({ item, configs, workflowConfig, open, saving, onC
       discipline:item.discipline, number_of_documents:item.number_of_documents, transmittal_number:item.transmittal_number,
       workflow_terminated:item.workflow_terminated, notes:item.notes, has_attachment:item.has_attachment, is_abandoned:item.is_abandoned,
       workflow_number:item.workflow_number, submission_progress:{...item.submission_progress}, feedback:{...item.feedback}, feedback_status:{...item.feedback_status}, order_index:item.order_index,
-    } : {...blank, document_date:today(), submission_progress:Object.fromEntries(workflowConfig.submission_steps.map(step=>[step,false])), feedback:{...Object.fromEntries(workflowConfig.feedback_reviewers.map(reviewer=>[reviewer,false])),Terminate:false},feedback_status:Object.fromEntries(workflowConfig.feedback_reviewers.map(reviewer=>[reviewer,'P']))})
+    } : {...blank, document_date:today(), transmittal_number:defaultTransmittalNumber(blank.document_type), submission_progress:Object.fromEntries(workflowConfig.submission_steps.map(step=>[step,false])), feedback:{...Object.fromEntries(workflowConfig.feedback_reviewers.map(reviewer=>[reviewer,false])),Terminate:false},feedback_status:Object.fromEntries(workflowConfig.feedback_reviewers.map(reviewer=>[reviewer,'P']))})
   }, [item, open, workflowConfig])
   if (!open) return null
   const set = <K extends keyof PackageInput>(key: K, value: PackageInput[K]) => setForm(prev => ({...prev,[key]:value}))
   const setBase = (field: BaseField, raw: string) => {
     if (field === 'number_of_documents') set(field, Math.max(1, Number(raw)))
+    else if (field === 'document_type') setForm(previous => ({
+      ...previous,
+      document_type: raw,
+      transmittal_number: !item || !previous.transmittal_number || automaticTransmittalNumbers.has(previous.transmittal_number)
+        ? defaultTransmittalNumber(raw)
+        : previous.transmittal_number,
+    }))
     else set(field, raw)
   }
   return <div className="modal-layer" role="dialog" aria-modal="true">
@@ -58,10 +67,12 @@ export function PackageEditor({ item, configs, workflowConfig, open, saving, onC
           const inputType=field.name==='document_date'?'date':field.name==='number_of_documents'?'number':'text'
           return <label key={field.name}><span>{field.label}</span>{options?.length ? <select value={value} onChange={e=>setBase(field.name,e.target.value)}><option value="">Select {field.label.toLowerCase()}</option>{!options.includes(value)&&value&&<option value={value}>{value}</option>}{options.map(option=><option key={option} value={option}>{option}</option>)}</select> : <input type={inputType} min={inputType==='number'?1:undefined} value={value} placeholder={field.placeholder} onChange={e=>setBase(field.name,e.target.value)}/>}</label>
         })}</div>
-        <fieldset><legend>Terminate Workflow</legend><div className="check-grid two"><label className="check-card"><input type="checkbox" checked={form.workflow_terminated} onChange={e=>set('workflow_terminated',e.target.checked)}/><i/><span>Workflow is terminated</span></label></div></fieldset>
-        <fieldset><legend>Submission progress</legend><SubmissionSlider steps={workflowConfig.submission_steps} value={workflowConfig.submission_steps.filter(step=>form.submission_progress[step]).length} onChange={value=>set('submission_progress',Object.fromEntries(workflowConfig.submission_steps.map((step,index)=>[step,index<value])) as PackageInput['submission_progress'])} disabled={form.is_abandoned}/></fieldset>
-        <fieldset><legend>Has attachment</legend><div className="editor-switch-row"><div><strong>Document has attachment</strong><span>Highlights the row and replaces the date display.</span></div><label className="switch"><input type="checkbox" checked={form.has_attachment} onChange={e=>set('has_attachment',e.target.checked)}/><i/></label></div></fieldset>
-        <fieldset><legend>Feedback Status</legend><div className="feedback-status-editor">{workflowConfig.feedback_reviewers.map(reviewer=><label key={reviewer}><span>{reviewer}</span><select value={form.feedback_status[reviewer]||'P'} onChange={e=>{const status=e.target.value as FeedbackStatusCode;setForm(previous=>({...previous,feedback_status:{...previous.feedback_status,[reviewer]:status},feedback:{...previous.feedback,[reviewer]:status!=='P'}}))}}>{Object.entries(workflowConfig.feedback_status_labels).map(([code,label])=><option key={code} value={code}>{code} – {label}</option>)}</select></label>)}</div><div className="editor-switch-row terminate-feedback-row"><div><strong>Terminate Feedback</strong><span>Stops Feedback and displays its progress bar in grey.</span></div><label className="switch"><input type="checkbox" checked={form.feedback.Terminate} onChange={e=>set('feedback',{...form.feedback,Terminate:e.target.checked})}/><i/></label></div></fieldset>
+        <details className="editor-more">
+          <summary>More</summary>
+          <fieldset><legend>Submission progress</legend><SubmissionSlider steps={workflowConfig.submission_steps} value={workflowConfig.submission_steps.filter(step=>form.submission_progress[step]).length} onChange={value=>set('submission_progress',Object.fromEntries(workflowConfig.submission_steps.map((step,index)=>[step,index<value])) as PackageInput['submission_progress'])} disabled={form.is_abandoned}/></fieldset>
+          <fieldset><legend>Has attachment</legend><div className="editor-switch-row"><div><strong>Document has attachment</strong><span>Highlights the row and replaces the date display.</span></div><label className="switch"><input type="checkbox" checked={form.has_attachment} onChange={e=>set('has_attachment',e.target.checked)}/><i/></label></div></fieldset>
+          <fieldset><legend>Feedback Status</legend><div className="feedback-status-editor">{workflowConfig.feedback_reviewers.map(reviewer=><label key={reviewer}><span>{reviewer}</span><select value={form.feedback_status[reviewer]||'P'} onChange={e=>{const status=e.target.value as FeedbackStatusCode;setForm(previous=>({...previous,feedback_status:{...previous.feedback_status,[reviewer]:status},feedback:{...previous.feedback,[reviewer]:status!=='P'}}))}}>{Object.entries(workflowConfig.feedback_status_labels).map(([code,label])=><option key={code} value={code}>{code} – {label}</option>)}</select></label>)}</div><div className="editor-switch-row terminate-feedback-row"><div><strong>Terminate workflow</strong><span>Terminates the feedback workflow and displays its progress bar in grey.</span></div><label className="switch"><input type="checkbox" checked={form.feedback.Terminate} onChange={e=>set('feedback',{...form.feedback,Terminate:e.target.checked})}/><i/></label></div></fieldset>
+        </details>
       </div>
       <footer><button type="button" className="secondary-button" onClick={onClose}>Cancel</button><button type="submit" className="primary-button" disabled={saving}>{saving?<LoaderCircle className="spin" size={16}/>:<Save size={16}/>} {saving?'Saving…':'Save document'}</button></footer>
     </form>
