@@ -25,7 +25,6 @@ DocFlow is a maintainable first-version engineering document control system. It 
 - Multi-rule filters across every visible register column
 - Loading, empty, error, editing, validation, and success/error feedback states
 - Responsive desktop/mobile layout
-- Extension boundary for future Aconex, scheduled sync, and email adapters
 
 ## Quick start with Docker Compose
 

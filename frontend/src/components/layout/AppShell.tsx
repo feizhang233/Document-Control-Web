@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import { Outlet } from 'react-router-dom'
 import { Menu } from 'lucide-react'
 import { Sidebar } from './Sidebar'
@@ -19,7 +19,7 @@ export function AppShell() {
             <div className="user-chip"><div className="avatar">ZF</div><div><strong>Zhang Fei</strong><span>Document Controller</span></div></div>
           </div>
         </header>
-        <main className="page-content"><Outlet /></main>
+        <main className="page-content"><Suspense fallback={<div className="state-panel">Loading…</div>}><Outlet /></Suspense></main>
       </div>
     </div>
   )

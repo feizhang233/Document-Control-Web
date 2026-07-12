@@ -5,8 +5,6 @@ export const submissionSteps = [
 export const feedbackSteps = ['UTIBER', 'GDS'] as const
 export const feedbackStatusLabels = { A:'Approved', B:'Approved with comments', C:'Rejected', P:'Pending' } as const
 
-export type SubmissionStep = typeof submissionSteps[number]
-export type FeedbackStep = typeof feedbackSteps[number]
 export type FeedbackStatusCode = keyof typeof feedbackStatusLabels
 
 export interface Package {
@@ -32,7 +30,7 @@ export interface Package {
   updated_at: string
 }
 
-export interface PackageInput extends Omit<Package, 'id' | 'created_at' | 'updated_at'> {}
+export type PackageInput = Omit<Package, 'id' | 'created_at' | 'updated_at'>
 
 export interface PackageListResponse {
   items: Package[]

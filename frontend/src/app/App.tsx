@@ -1,8 +1,10 @@
+import { lazy } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AppShell } from '../components/layout/AppShell'
-import { DashboardPage } from '../pages/DashboardPage'
-import { PackagesPage } from '../pages/PackagesPage'
-import { SettingsPage } from '../pages/SettingsPage'
+
+const DashboardPage = lazy(() => import('../pages/DashboardPage').then(module => ({ default: module.DashboardPage })))
+const PackagesPage = lazy(() => import('../pages/PackagesPage').then(module => ({ default: module.PackagesPage })))
+const SettingsPage = lazy(() => import('../pages/SettingsPage').then(module => ({ default: module.SettingsPage })))
 
 export function App() {
   return (

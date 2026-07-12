@@ -105,7 +105,7 @@ function parseOptionalDate(value:string,row:number):string|undefined{
   if(!trimmed)return undefined
   // Accept ISO dates and common spreadsheet day-first / month-first forms.
   const iso=trimmed.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/)
-  const slash=trimmed.match(/^(\d{1,2})[\/.](\d{1,2})[\/.](\d{4})$/)
+  const slash=trimmed.match(/^(\d{1,2})[/.](\d{1,2})[/.](\d{4})$/)
   let year=0,month=0,day=0
   if(iso){[year,month,day]=[Number(iso[1]),Number(iso[2]),Number(iso[3])]}
   else if(slash){

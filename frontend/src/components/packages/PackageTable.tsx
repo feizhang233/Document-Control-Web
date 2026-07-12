@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { DndContext, type DragEndEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -7,6 +7,7 @@ import type { ColumnConfig, ColumnField, FeedbackStatusCode, Package, PageKind }
 import { ProgressTrack } from '../common/ProgressTrack'
 import { StatusBadge } from '../common/StatusBadge'
 import { FeedbackStatus } from './FeedbackStatus'
+import { useDismissableLayer } from '../../hooks/useDismissableLayer'
 
 interface Props { items: Package[]; kind: PageKind; configs:ColumnConfig[]; submissionSteps:readonly string[]; feedbackReviewers:readonly string[]; feedbackStatusLabels:Record<FeedbackStatusCode,string>; feedbackStatusColors:Record<FeedbackStatusCode,string>; sortBy: string; sortOrder: 'asc'|'desc'; onSort: (key: string) => void; onColumnResize:(field:ColumnField,width:number)=>void; onView: (item: Package) => void; onEdit: (item: Package) => void; onReorder: (ids: number[]) => void; onAdvance:(item:Package,type:'submission'|'feedback')=>void; onDuplicate:(item:Package)=>void; onToggleAbandoned:(item:Package)=>void; onToggleTerminate:(item:Package)=>void; onDelete:(item:Package)=>void }
 
@@ -30,13 +31,8 @@ function Header({ label, field, config, sortBy, sortOrder, onSort, onResize }: {
 
 function SortableRow({item,kind,configs,submissionSteps,feedbackReviewers,feedbackStatusLabels,feedbackStatusColors,onView,onEdit,onAdvance,onDuplicate,onToggleAbandoned,onToggleTerminate,onDelete}:{item:Package;kind:PageKind;configs:ColumnConfig[];submissionSteps:Props['submissionSteps'];feedbackReviewers:Props['feedbackReviewers'];feedbackStatusLabels:Props['feedbackStatusLabels'];feedbackStatusColors:Props['feedbackStatusColors'];onView:(p:Package)=>void;onEdit:(p:Package)=>void;onAdvance:Props['onAdvance'];onDuplicate:Props['onDuplicate'];onToggleAbandoned:Props['onToggleAbandoned'];onToggleTerminate:Props['onToggleTerminate'];onDelete:Props['onDelete']}) {
   const [menuOpen,setMenuOpen]=useState(false)
-  const menuRef=useRef<HTMLDivElement>(null)
+  const menuRef=useDismissableLayer<HTMLDivElement>(menuOpen,()=>setMenuOpen(false))
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id })
-  useEffect(()=>{
-    const close=(event:MouseEvent)=>{if(menuRef.current&&!menuRef.current.contains(event.target as Node))setMenuOpen(false)}
-    document.addEventListener('mousedown',close)
-    return()=>document.removeEventListener('mousedown',close)
-  },[])
   useEffect(()=>{if(isDragging)setMenuOpen(false)},[isDragging])
   const style = { transform: CSS.Transform.toString(transform), transition }
   const first = kind === 'workflow' ? item.workflow_number : kind === 'transmittal' ? item.transmittal_number : item.document_number

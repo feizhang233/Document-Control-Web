@@ -1,5 +1,7 @@
 import { feedbackStatusLabels as defaultStatusLabels, feedbackSteps as defaultFeedbackSteps, type FeedbackStatusCode, type Package } from '../../types/package'
 
+// Shared with the dashboard; the component export in this file is intentional.
+// eslint-disable-next-line react-refresh/only-export-components
 export function getEffectiveFeedbackStatus(item:Pick<Package,'feedback'|'feedback_status'>,reviewers:readonly string[]=defaultFeedbackSteps,statusLabels:Record<FeedbackStatusCode,string>=defaultStatusLabels){
   if(item.feedback.Terminate)return {code:'T',label:'Terminated'} as const
   const [first,second]=reviewers

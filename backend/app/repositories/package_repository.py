@@ -39,7 +39,6 @@ class PackageRepository:
         items = list(self.db.scalars(query.order_by(order, Package.id).offset((page-1)*page_size).limit(page_size)))
         return items, count
     def get(self, package_id: int): return self.db.get(Package, package_id)
-    def get_by_document_number(self, number: str): return self.db.scalar(select(Package).where(Package.document_number == number))
     def get_by_workflow_number(self, number: str): return self.db.scalars(select(Package).where(Package.workflow_number == number)).first()
     def create(self, values: dict):
         item = Package(**values); self.db.add(item); self.db.commit(); self.db.refresh(item); return item

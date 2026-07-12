@@ -3,7 +3,7 @@ import type { ColumnConfig, CsvImportRow, MetadataBackup, NotificationList, Pack
 
 const client = axios.create({ baseURL: import.meta.env.VITE_API_URL || '/api', timeout: 12_000 })
 
-export interface ListParams {
+interface ListParams {
   period?: Period
   search?: string
   discipline?: string
@@ -23,7 +23,6 @@ export const packagesApi = {
     const rest=await Promise.all(pages.map(page=>client.get<PackageListResponse>('/packages',{params:{...params,page,page_size:200}}).then(response=>response.data.items)))
     return {...first,items:[...first.items,...rest.flat()],page_size:first.total}
   },
-  get: async (id: number) => (await client.get<Package>(`/packages/${id}`)).data,
   create: async (data: PackageInput) => (await client.post<Package>('/packages', data)).data,
   update: async (id: number, data: Partial<PackageInput>) => (await client.patch<Package>(`/packages/${id}`, data)).data,
   remove: async (id: number) => client.delete(`/packages/${id}`),

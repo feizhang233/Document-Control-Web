@@ -85,7 +85,7 @@ class SettingsService:
         Document numbers are not unique (revisions may share a number), so merge
         always appends packages rather than matching on document_number.
         """
-        created = updated = configs_updated = 0
+        created = configs_updated = 0
         if mode == "replace":
             self.db.execute(delete(Package)); self.db.flush()
         if payload.workflow_config:
@@ -115,7 +115,7 @@ class SettingsService:
                 config.option_colors = {option:color for option,color in incoming.option_colors.items() if option in config.options}
                 configs_updated += 1
         self.db.commit()
-        return {"mode":mode,"packages_created":created,"packages_updated":updated,"configs_updated":configs_updated}
+        return {"mode":mode,"packages_created":created,"packages_updated":0,"configs_updated":configs_updated}
     def import_csv(self, payload: CsvMetadataImport, mode: str):
         """Import package rows from CSV.
 
@@ -123,7 +123,7 @@ class SettingsService:
         appear multiple times (different revisions / submissions) and is always
         inserted as a new row. Merge appends; replace clears the table first.
         """
-        created = updated = 0
+        created = 0
         if mode == "replace":
             self.db.execute(delete(Package)); self.db.flush()
         workflow = self.get_workflow_config()
@@ -147,4 +147,4 @@ class SettingsService:
             created += 1
             order_index += 1
         self.db.commit()
-        return {"mode":mode,"packages_created":created,"packages_updated":updated,"configs_updated":0}
+        return {"mode":mode,"packages_created":created,"packages_updated":0,"configs_updated":0}

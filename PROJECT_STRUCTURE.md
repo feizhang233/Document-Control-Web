@@ -16,7 +16,6 @@
 │   ├── app/api/              HTTP route layer
 │   ├── app/core/             Environment-based configuration
 │   ├── app/db/               SQLAlchemy base and session lifecycle
-│   ├── app/integrations/     Future Aconex/sync/mail extension boundary
 │   ├── app/models/           SQLAlchemy persistence models
 │   ├── app/repositories/     Database queries and persistence operations
 │   ├── app/schemas/          Pydantic request/response contracts
@@ -29,4 +28,4 @@
 └── README.md                 Setup, API, testing, and VPS deployment guide
 ```
 
-Routes stay thin; service classes own business behavior and repositories own queries. Column input settings, workflow structure, and metadata backups are stored in MySQL and versioned through Alembic. Future external systems should be implemented behind `backend/app/integrations` and invoked by a dedicated worker/scheduler rather than added to HTTP route files.
+Routes stay thin; service classes own business behavior and repositories own queries. Column input settings, workflow structure, and metadata backups are stored in MySQL and versioned through Alembic. Future external systems should be added through dedicated adapters and invoked by a worker or scheduler rather than added to HTTP route files.
