@@ -1,6 +1,6 @@
 # DocFlow — Engineering Document Workflow
 
-DocFlow is a maintainable first-version engineering document control system. It uses a React + TypeScript frontend, a FastAPI REST API, MySQL persistence, and Alembic migrations. The UI is designed as an information-dense enterprise workspace rather than an online spreadsheet.
+DocFlow is a maintainable first-version engineering document control system (Based on the Aconex Platform). It uses a React + TypeScript frontend, a FastAPI REST API, MySQL persistence, and Alembic migrations. The UI is designed as an information-dense enterprise workspace rather than an online spreadsheet.
 
 ## Features
 
@@ -19,7 +19,7 @@ DocFlow is a maintainable first-version engineering document control system. It 
 - API-key-protected endpoint for daily external Workflow synchronization
 - Click-to-advance Submission progress with equally styled current and following step labels
 - Shared draggable Submission slider in document details and editing
-- Sequential Feedback Status codes: A/B/C/P for UTIBER and GDS
+- Sequential Feedback Status codes: A/B/C/P for Workflow Reviewer
 - Duplicate, abandon/restore, and terminate/reopen actions in each row menu
 - Notes and attachment flags with attachment-highlighted rows
 - Multi-rule filters across every visible register column
