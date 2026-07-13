@@ -2,7 +2,7 @@ from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from app.db.session import get_db
-from app.schemas.settings import ColumnConfigRead, ColumnConfigUpdate, CsvMetadataImport, MetadataExport, MetadataImport, MetadataImportResult, WorkflowConfigRead, WorkflowConfigUpdate
+from app.schemas.settings import ColumnConfigRead, ColumnConfigUpdate, ColumnVisibilityUpdate, CsvMetadataImport, MetadataExport, MetadataImport, MetadataImportResult, WorkflowConfigRead, WorkflowConfigUpdate
 from app.services.settings_service import SettingsService
 
 router = APIRouter(tags=["settings"])
@@ -14,6 +14,12 @@ def list_column_configs(db: Session = Depends(get_db)): return SettingsService(d
 def update_column_config(field_name: str, data: ColumnConfigUpdate, db: Session = Depends(get_db)):
     item = SettingsService(db).update_config(field_name, data)
     if not item: raise HTTPException(status_code=404, detail="Configurable column not found")
+    return item
+
+@router.put("/settings/columns/{field_name}/visibility", response_model=ColumnConfigRead)
+def update_register_column_visibility(field_name: str, data: ColumnVisibilityUpdate, register: Literal["workflow","transmittal"] = Query(...), db: Session = Depends(get_db)):
+    item = SettingsService(db).update_register_visibility(field_name, register, data.is_visible)
+    if not item: raise HTTPException(status_code=404, detail="Configurable register column not found")
     return item
 
 @router.post("/settings/columns/reset", response_model=list[ColumnConfigRead])

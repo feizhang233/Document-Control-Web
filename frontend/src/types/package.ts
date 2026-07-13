@@ -50,6 +50,8 @@ export interface ColumnConfig {
   field_name: ColumnField
   display_name: string
   is_visible: boolean
+  is_visible_workflow: boolean
+  is_visible_transmittal: boolean
   column_width: number
   input_type: 'text' | 'select'
   options: string[]

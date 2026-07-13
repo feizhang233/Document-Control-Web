@@ -46,6 +46,12 @@ class SettingsService:
         item.options = data.options if data.input_type == "select" else []
         item.option_colors = {option:color for option,color in data.option_colors.items() if option in item.options}
         self.db.commit(); self.db.refresh(item); return item
+    def update_register_visibility(self, field_name: str, register: str, is_visible: bool):
+        if field_name not in CONFIGURABLE_FIELDS or register not in {"workflow", "transmittal"}: return None
+        item = self.db.scalar(select(ColumnConfig).where(ColumnConfig.field_name == field_name))
+        if not item: return None
+        setattr(item, f"is_visible_{register}", is_visible)
+        self.db.commit(); self.db.refresh(item); return item
     def reset_configs(self):
         existing = {item.field_name:item for item in self.db.scalars(select(ColumnConfig))}
         for field_name, (display_name, width, input_type, options, option_colors) in DEFAULT_COLUMN_CONFIGS.items():
@@ -54,6 +60,8 @@ class SettingsService:
                 item = ColumnConfig(field_name=field_name); self.db.add(item)
             item.display_name = display_name
             item.is_visible = True
+            item.is_visible_workflow = True
+            item.is_visible_transmittal = True
             item.column_width = width
             item.input_type = input_type
             item.options = options
@@ -111,6 +119,8 @@ class SettingsService:
             if config:
                 config.display_name = incoming.display_name
                 config.is_visible = incoming.is_visible
+                config.is_visible_workflow = incoming.is_visible_workflow
+                config.is_visible_transmittal = incoming.is_visible_transmittal
                 config.column_width = incoming.column_width
                 config.input_type = incoming.input_type
                 config.options = incoming.options if incoming.input_type == "select" else []

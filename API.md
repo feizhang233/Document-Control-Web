@@ -117,8 +117,9 @@ Lifecycle fields accepted by create/update and included in metadata backups are 
 
 | Method | Endpoint | Description |
 | --- | --- | --- |
-| `GET` | `/api/settings/columns` | Read text/dropdown configuration |
-| `PUT` | `/api/settings/columns/{field}` | Update input type and dropdown options |
+| `GET` | `/api/settings/columns` | Read Document design and per-register visibility configuration |
+| `PUT` | `/api/settings/columns/{field}` | Update Document column labels, width, visibility, and input options |
+| `PUT` | `/api/settings/columns/{field}/visibility?register=workflow\|transmittal` | Update visibility only for the selected register |
 | `GET` | `/api/settings/workflow` | Read Submission stages, Feedback reviewers, A/B/C/P labels, and Transmittal filter prefixes |
 | `PUT` | `/api/settings/workflow` | Update workflow structure, Transmittal prefixes, and remap existing document state by position |
 | `GET` | `/api/metadata/export` | Export documents and settings as JSON |

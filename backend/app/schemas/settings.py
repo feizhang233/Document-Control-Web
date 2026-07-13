@@ -54,6 +54,8 @@ class ColumnConfigRead(BaseModel):
     field_name: str
     display_name: str
     is_visible: bool = True
+    is_visible_workflow: bool = True
+    is_visible_transmittal: bool = True
     column_width: int = 140
     input_type: Literal["text", "select"]
     options: list[str]
@@ -93,6 +95,9 @@ class ColumnConfigUpdate(BaseModel):
         if any(not _is_hex_color(color) for color in value.values()):
             raise ValueError("Option colors must use #RRGGBB format")
         return value
+
+class ColumnVisibilityUpdate(BaseModel):
+    is_visible: bool
 
 def _is_hex_color(value: str) -> bool:
     return len(value) == 7 and value.startswith("#") and all(character in "0123456789abcdefABCDEF" for character in value[1:])

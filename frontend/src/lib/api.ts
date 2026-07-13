@@ -34,6 +34,7 @@ export const packagesApi = {
 export const settingsApi = {
   listColumns: async () => (await client.get<ColumnConfig[]>('/settings/columns')).data,
   updateColumn: async (field: string, data: Pick<ColumnConfig, 'display_name'|'is_visible'|'column_width'|'input_type'|'options'|'option_colors'>) => (await client.put<ColumnConfig>(`/settings/columns/${field}`, data)).data,
+  updateColumnVisibility: async (field: string, register: 'workflow'|'transmittal', is_visible: boolean) => (await client.put<ColumnConfig>(`/settings/columns/${field}/visibility`, {is_visible}, {params:{register}})).data,
   resetColumns: async () => (await client.post<ColumnConfig[]>('/settings/columns/reset')).data,
   getWorkflow: async () => (await client.get<WorkflowConfig>('/settings/workflow')).data,
   updateWorkflow: async (data: Pick<WorkflowConfig,'submission_steps'|'feedback_reviewers'|'feedback_status_labels'|'feedback_status_colors'|'transmittal_prefixes'>) => (await client.put<WorkflowConfig>('/settings/workflow', data)).data,

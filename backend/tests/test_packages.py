@@ -86,6 +86,11 @@ def test_column_config_and_metadata_backup(client):
     assert layout.status_code == 200
     assert layout.json()["display_name"] == "Trade"
     assert layout.json()["is_visible"] is False and layout.json()["column_width"] == 180
+    workflow_visibility = client.put("/api/settings/columns/discipline/visibility?register=workflow", json={"is_visible":False})
+    transmittal_visibility = client.put("/api/settings/columns/discipline/visibility?register=transmittal", json={"is_visible":False})
+    assert workflow_visibility.status_code == 200 and workflow_visibility.json()["is_visible_workflow"] is False
+    assert transmittal_visibility.status_code == 200 and transmittal_visibility.json()["is_visible_transmittal"] is False
+    assert transmittal_visibility.json()["display_name"] == "Trade"  # Visibility-only endpoint does not edit labels.
     # Column drag can submit fractional widths; API must round instead of 422.
     fractional = client.put("/api/settings/columns/discipline", json={
         "display_name":"Trade", "is_visible":False, "column_width":183.5,
@@ -98,6 +103,7 @@ def test_column_config_and_metadata_backup(client):
     discipline = next(item for item in reset.json() if item["field_name"] == "discipline")
     assert discipline["display_name"] == "Discipline"
     assert discipline["is_visible"] is True and discipline["column_width"] == 110
+    assert discipline["is_visible_workflow"] is True and discipline["is_visible_transmittal"] is True
     document_type = next(item for item in reset.json() if item["field_name"] == "document_type")
     assert document_type["option_colors"]["Drawing"] == "#3164ce"
     backup = client.get("/api/metadata/export")

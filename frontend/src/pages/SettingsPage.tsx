@@ -8,6 +8,7 @@ import type { ColumnConfig, CsvImportRow, FeedbackStatusCode, MetadataBackup, Wo
 type ImportMode = 'merge'|'replace'
 type CsvImportPreview = { fileName:string; rows:CsvImportRow[] }
 type SettingsSection = 'columns'|'workflow'|'backup'
+type ColumnRegister = 'documents'|'workflow'|'transmittal'
 const palette=['#3164ce','#7453be','#21815d','#b06a1d','#b13f4c','#9b4d80','#3970c7','#68717e']
 
 export function SettingsPage() {
@@ -20,9 +21,22 @@ export function SettingsPage() {
   const [mode,setMode]=useState<ImportMode>('merge')
   const [csvMode,setCsvMode]=useState<ImportMode>('merge')
   const [section,setSection]=useState<SettingsSection>('columns')
+  const [columnRegister,setColumnRegister]=useState<ColumnRegister>('documents')
   const configs=useQuery({queryKey:['column-configs'],queryFn:settingsApi.listColumns})
   const workflowConfig=useQuery({queryKey:['workflow-config'],queryFn:settingsApi.getWorkflow})
   const resetColumns=useMutation({mutationFn:settingsApi.resetColumns,onSuccess:()=>{toast.success('Column settings reset to defaults');queryClient.invalidateQueries({queryKey:['column-configs']})},onError:e=>toast.error(getApiError(e))})
+  const updateRegisterVisibility=useMutation({
+    mutationFn:({field,register,isVisible}:{field:string;register:'workflow'|'transmittal';isVisible:boolean})=>settingsApi.updateColumnVisibility(field,register,isVisible),
+    onMutate:async({field,register,isVisible})=>{
+      await queryClient.cancelQueries({queryKey:['column-configs']})
+      const previous=queryClient.getQueryData<ColumnConfig[]>(['column-configs'])
+      const key=register==='workflow'?'is_visible_workflow':'is_visible_transmittal'
+      queryClient.setQueryData<ColumnConfig[]>(['column-configs'],items=>items?.map(item=>item.field_name===field?{...item,[key]:isVisible}:item))
+      return{previous}
+    },
+    onError:(error,_variables,context)=>{if(context?.previous)queryClient.setQueryData(['column-configs'],context.previous);toast.error(getApiError(error))},
+    onSettled:()=>queryClient.invalidateQueries({queryKey:['column-configs']}),
+  })
   const exportMutation=useMutation({mutationFn:metadataApi.export,onSuccess:data=>{
     const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a')
     a.href=url;a.download=`docflow-metadata-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(url);toast.success('Metadata backup exported')
@@ -65,10 +79,9 @@ export function SettingsPage() {
       {section==='workflow'&&<section className="settings-panel wide"><div className="settings-heading icon-heading"><span><Workflow/></span><div><h2>Workflow & transmittal</h2><p>Edit Submission stages, Feedback behavior, and the quick-filter prefixes used by the Transmittal register.</p></div></div>
         {workflowConfig.isLoading?<div className="config-loading"><LoaderCircle className="spin"/> Loading workflow settings…</div>:workflowConfig.data?<WorkflowConfigEditor config={workflowConfig.data} onSaved={()=>{queryClient.invalidateQueries({queryKey:['workflow-config']});queryClient.invalidateQueries({queryKey:['packages']});queryClient.invalidateQueries({queryKey:['dashboard-packages']})}}/>:<div className="config-note"><strong>Workflow settings unavailable</strong><span>{workflowConfig.error?getApiError(workflowConfig.error):'Please refresh and try again.'}</span></div>}
       </section>}
-      {section==='columns'&&<section className="settings-panel wide"><div className="settings-heading icon-heading column-settings-heading"><span><ListFilter/></span><div><h2>Column & label design</h2><p>Edit column names, visibility and width. Dropdown options can each use a custom label color.</p></div><div className="column-settings-actions"><small>{configs.data?.filter(item=>item.is_visible).length||0} of {configs.data?.length||0} visible</small><button className="secondary-button" disabled={resetColumns.isPending} onClick={()=>{if(window.confirm('Reset all column names, widths, visibility, colors and input settings?'))resetColumns.mutate()}}>{resetColumns.isPending?<LoaderCircle className="spin"/>:<RotateCcw/>} Reset</button></div></div>
-        <div className="config-table-head"><span>Column</span><span>Display name</span><span>Visible</span><span>Width</span><span>Input type</span><span>Dropdown options</span><span/></div>
-        <div className="config-list">{configs.isLoading?<div className="config-loading"><LoaderCircle className="spin"/> Loading field settings…</div>:configs.data?.map(config=><ColumnConfigRow key={config.field_name} config={config} onSaved={()=>queryClient.invalidateQueries({queryKey:['column-configs']})}/>)}</div>
-        <div className="config-note"><strong>How this works</strong><span>Width accepts 72–500 pixels. Hiding a column does not delete its data. Input type only affects editable metadata fields; progress columns remain read-only.</span></div>
+      {section==='columns'&&<section className="settings-panel wide"><div className="settings-heading icon-heading column-settings-heading"><span><ListFilter/></span><div><h2>Column settings</h2><p>{columnRegister==='documents'?'Edit Document column names, visibility, width and metadata options.':'Choose which columns are visible on this register. Names, labels and field types are read-only here.'}</p></div><div className="column-settings-actions"><small>{configs.data?.filter(item=>columnRegister==='documents'?item.is_visible:columnRegister==='workflow'?item.is_visible_workflow:item.is_visible_transmittal).length||0} of {configs.data?.length||0} visible</small><button className="secondary-button" disabled={resetColumns.isPending} onClick={()=>{if(window.confirm('Reset all column names, widths, visibility, colors and input settings?'))resetColumns.mutate()}}>{resetColumns.isPending?<LoaderCircle className="spin"/>:<RotateCcw/>} Reset</button></div></div>
+        <div className="column-register-tabs" role="tablist" aria-label="Register column settings"><button role="tab" aria-selected={columnRegister==='documents'} className={columnRegister==='documents'?'active':''} onClick={()=>setColumnRegister('documents')}>Document</button><button role="tab" aria-selected={columnRegister==='workflow'} className={columnRegister==='workflow'?'active':''} onClick={()=>setColumnRegister('workflow')}>Workflow Page</button><button role="tab" aria-selected={columnRegister==='transmittal'} className={columnRegister==='transmittal'?'active':''} onClick={()=>setColumnRegister('transmittal')}>Transmittal Page</button></div>
+        {columnRegister==='documents'?<><div className="config-table-head"><span>Column</span><span>Display name</span><span>Visible</span><span>Width</span><span>Input type</span><span>Dropdown options</span><span/></div><div className="config-list">{configs.isLoading?<div className="config-loading"><LoaderCircle className="spin"/> Loading field settings…</div>:configs.data?.map(config=><ColumnConfigRow key={config.field_name} config={config} onSaved={()=>queryClient.invalidateQueries({queryKey:['column-configs']})}/>)}</div><div className="config-note"><strong>Document column design</strong><span>Width accepts 72–500 pixels. Hiding a column does not delete its data. Input type only affects editable metadata fields; progress columns remain read-only.</span></div></>:<><div className="register-visibility-list">{configs.isLoading?<div className="config-loading"><LoaderCircle className="spin"/> Loading field settings…</div>:configs.data?.map(config=>{const visible=columnRegister==='workflow'?config.is_visible_workflow:config.is_visible_transmittal;return <label key={config.field_name} className="register-visibility-row"><div><strong>{config.display_name}</strong><code>{config.field_name}</code></div><span>{visible?'Shown':'Hidden'}</span><span className="config-visibility"><input type="checkbox" checked={visible} disabled={updateRegisterVisibility.isPending} onChange={event=>updateRegisterVisibility.mutate({field:config.field_name,register:columnRegister,isVisible:event.target.checked})}/><i/></span></label>})}</div><div className="config-note"><strong>{columnRegister==='workflow'?'Workflow Page':'Transmittal Page'} visibility</strong><span>The available columns match Document. These settings only control whether each column is shown; names and labels remain managed by Document settings.</span></div></>}
       </section>}
       </div>
     </div>

@@ -9,6 +9,8 @@ class ColumnConfig(Base):
     field_name: Mapped[str] = mapped_column(String(80), unique=True, nullable=False)
     display_name: Mapped[str] = mapped_column(String(120), nullable=False)
     is_visible: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    is_visible_workflow: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    is_visible_transmittal: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     column_width: Mapped[int] = mapped_column(Integer, default=140, nullable=False)
     input_type: Mapped[str] = mapped_column(String(20), default="text", nullable=False)
     options: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
