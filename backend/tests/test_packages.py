@@ -42,6 +42,22 @@ def test_reorder(client):
     items=client.get("/api/packages",params={"period":"all"}).json()["items"]
     assert [i["id"] for i in items]==[second["id"],first["id"]]
 
+def test_register_sorting_and_transmittal_prefix_filter(client):
+    older = payload("DOC-OLDER")
+    older.update({"document_date":"2026-07-01", "workflow_number":"WF-002", "transmittal_number":"NFS-PCH-TRA-RFI-002"})
+    newer = payload("DOC-NEWER")
+    newer.update({"document_date":"2026-07-12", "workflow_number":"WF-001", "transmittal_number":"NFS-PCH-TRA-PZI-001"})
+    client.post("/api/packages", json=older)
+    client.post("/api/packages", json=newer)
+
+    documents = client.get("/api/packages", params={"period":"all", "sort_by":"document_date", "sort_order":"desc"}).json()["items"]
+    workflows = client.get("/api/packages", params={"period":"all", "sort_by":"workflow_number", "sort_order":"asc"}).json()["items"]
+    filtered = client.get("/api/packages", params={"period":"all", "transmittal_prefix":"NFS-PCH-TRA-RFI-"}).json()
+
+    assert [item["document_number"] for item in documents] == ["DOC-NEWER", "DOC-OLDER"]
+    assert [item["workflow_number"] for item in workflows] == ["WF-001", "WF-002"]
+    assert filtered["total"] == 1 and filtered["items"][0]["document_number"] == "DOC-OLDER"
+
 def test_duplicate_and_lifecycle_metadata(client):
     created=client.post("/api/packages",json=payload()).json()
     duplicate=client.post(f"/api/packages/{created['id']}/duplicate")
@@ -149,14 +165,17 @@ def test_workflow_configuration_reorders_and_remaps_existing_data(client):
     current = client.get("/api/settings/workflow")
     assert current.status_code == 200
     assert current.json()["submission_steps"][1] == "DCO Backup"
+    assert current.json()["transmittal_prefixes"] == ["NFS-PCH-TRA-PZI-", "NFS-PCH-TRA-RFI-", "NFS-PCH-TRA-RPT-"]
     changed = client.put("/api/settings/workflow", json={
         "submission_steps":["Preparation","Backup","Signature","Initiation","Email","Registration"],
         "feedback_reviewers":["Reviewer One","Reviewer Two"],
         "feedback_status_labels":{"A":"Accepted","B":"Accepted with comments","C":"Rejected","P":"Pending"},
         "feedback_status_colors":{"A":"#15803d","B":"#a16207","C":"#b91c1c","P":"#1d4ed8"},
+        "transmittal_prefixes":["CUSTOM-TRA-", "CUSTOM-RFI-"],
     })
     assert changed.status_code == 200
     assert changed.json()["feedback_status_colors"]["A"] == "#15803d"
+    assert changed.json()["transmittal_prefixes"] == ["CUSTOM-TRA-", "CUSTOM-RFI-"]
     updated = client.get(f"/api/packages/{created['id']}").json()
     assert updated["submission_progress"]["Preparation"] is True
     assert updated["submission_progress"]["Backup"] is False

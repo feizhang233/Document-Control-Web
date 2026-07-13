@@ -19,7 +19,11 @@ export function DashboardPage() {
   const complete=items.filter(item=>currentSubmissionSteps.every(step=>item.submission_progress[step])).length
   const feedbackPending=items.filter(item=>!item.feedback.Terminate&&currentFeedbackReviewers.some(step=>!item.feedback[step])).length
   const active=items.length-complete
-  const completionRate=items.length?Math.round(complete/items.length*100):0
+  const [utiberReviewer='UTIBER',gdsReviewer='GDS']=currentFeedbackReviewers
+  const gdsApproved=items.filter(item=>item.feedback[gdsReviewer]).length
+  const utiberApproved=items.filter(item=>item.feedback[utiberReviewer]&&!item.feedback[gdsReviewer]).length
+  const awaitingUtiber=items.length-gdsApproved-utiberApproved
+  const gdsApprovalRate=items.length?Math.round(gdsApproved/items.length*100):0
   const pending=items.filter(item=>!item.is_abandoned&&!currentSubmissionSteps.every(step=>item.submission_progress[step])).sort((left,right)=>completedSteps(right,currentSubmissionSteps)-completedSteps(left,currentSubmissionSteps)).slice(0,6)
   const today=new Date()
   const todayChanges=(notifications?.items||[]).filter(item=>new Date(item.created_at).toDateString()===today.toDateString()).filter((item,index,array)=>array.findIndex(candidate=>(candidate.workflow_number||candidate.document_number)===(item.workflow_number||item.document_number))===index).slice(0,6)
@@ -45,7 +49,7 @@ export function DashboardPage() {
 
     <div className="dashboard-row dashboard-row-secondary">
       <section className="panel dashboard-panel status-panel"><div className="panel-heading"><div><h2>Workflow status</h2><p>Feedback status distribution across all documents</p></div><span className="trend"><TrendingUp size={14}/> Live</span></div><div className="status-overview"><div className="status-donut" style={{background:statusGradient}}><div><strong>{items.length}</strong><span>workflows</span></div></div><div className="status-legend">{statusRows.map(row=><div key={row.code}><i style={{background:row.color}}/><b>{row.code}</b><span>{row.label}</span><strong>{items.length?Math.round(row.count/items.length*100):0}%</strong><small>{row.count}</small></div>)}</div></div><Link className="panel-action" to="/workflow"><Send/> Review status details <ArrowRight/></Link></section>
-      <section className="panel dashboard-panel overview-panel"><div className="panel-heading"><div><h2>Workflow overview</h2><p>Current submission health</p></div><span className="trend"><TrendingUp size={14}/> Live</span></div><div className="donut-wrap"><div className="donut" style={{'--progress':`${completionRate}%`} as React.CSSProperties}><div><strong>{completionRate}%</strong><span>complete</span></div></div><div className="donut-legend"><div><i className="blue"/><span>In progress</span><strong>{active}</strong></div><div><i className="green"/><span>Completed</span><strong>{complete}</strong></div><div><i className="amber"/><span>Feedback due</span><strong>{feedbackPending}</strong></div></div></div><Link className="panel-action" to="/workflow"><Send/> Review workflow register <ArrowRight/></Link></section>
+      <section className="panel dashboard-panel overview-panel"><div className="panel-heading"><div><h2>Workflow overview</h2><p>Current approval progress</p></div><span className="trend"><TrendingUp size={14}/> Live</span></div><div className="donut-wrap"><div className="donut" style={{'--progress':`${gdsApprovalRate}%`,'--progress-color':'#32a87b'} as React.CSSProperties}><div><strong>{gdsApprovalRate}%</strong><span>GDS approved</span></div></div><div className="donut-legend"><div><i className="green"/><span>GDS approval completed</span><strong>{gdsApproved}</strong></div><div><i className="blue"/><span>UTIBER approval completed</span><strong>{utiberApproved}</strong></div><div><i className="amber"/><span>Awaiting UTIBER approval</span><strong>{awaitingUtiber}</strong></div></div></div><Link className="panel-action" to="/workflow"><Send/> Review workflow register <ArrowRight/></Link></section>
     </div>
   </>
 }

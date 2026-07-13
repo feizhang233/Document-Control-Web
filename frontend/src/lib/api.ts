@@ -8,6 +8,7 @@ interface ListParams {
   search?: string
   discipline?: string
   document_type?: string
+  transmittal_prefix?: string
   sort_by?: string
   sort_order?: 'asc' | 'desc'
   page?: number
@@ -35,7 +36,7 @@ export const settingsApi = {
   updateColumn: async (field: string, data: Pick<ColumnConfig, 'display_name'|'is_visible'|'column_width'|'input_type'|'options'|'option_colors'>) => (await client.put<ColumnConfig>(`/settings/columns/${field}`, data)).data,
   resetColumns: async () => (await client.post<ColumnConfig[]>('/settings/columns/reset')).data,
   getWorkflow: async () => (await client.get<WorkflowConfig>('/settings/workflow')).data,
-  updateWorkflow: async (data: Pick<WorkflowConfig,'submission_steps'|'feedback_reviewers'|'feedback_status_labels'|'feedback_status_colors'>) => (await client.put<WorkflowConfig>('/settings/workflow', data)).data,
+  updateWorkflow: async (data: Pick<WorkflowConfig,'submission_steps'|'feedback_reviewers'|'feedback_status_labels'|'feedback_status_colors'|'transmittal_prefixes'>) => (await client.put<WorkflowConfig>('/settings/workflow', data)).data,
 }
 
 export const metadataApi = {

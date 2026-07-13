@@ -90,6 +90,7 @@ export interface WorkflowConfig {
   feedback_reviewers: string[]
   feedback_status_labels: Record<FeedbackStatusCode,string>
   feedback_status_colors: Record<FeedbackStatusCode,string>
+  transmittal_prefixes: string[]
   updated_at: string
 }
 

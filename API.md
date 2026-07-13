@@ -109,7 +109,7 @@ The former Workflow Status field is removed. Feedback is now the workflow feedba
 | `DELETE` | `/api/packages/{id}` | Delete a document |
 | `POST` | `/api/packages/reorder` | Persist row ordering |
 
-List parameters: `period=week|month|year|all`, `search`, `discipline`, `document_type`, `sort_by`, `sort_order`, `page`, and `page_size`.
+List parameters: `period=week|month|year|all`, `search`, `discipline`, `document_type`, `transmittal_prefix`, `sort_by`, `sort_order`, `page`, and `page_size`. `transmittal_prefix` performs a starts-with match against the Transmittal Number.
 
 Lifecycle fields accepted by create/update and included in metadata backups are `notes`, `has_attachment`, `is_abandoned`, and `workflow_terminated`. Setting `is_abandoned=true` greys both progress tracks in the UI without deleting their recorded steps.
 
@@ -119,15 +119,15 @@ Lifecycle fields accepted by create/update and included in metadata backups are 
 | --- | --- | --- |
 | `GET` | `/api/settings/columns` | Read text/dropdown configuration |
 | `PUT` | `/api/settings/columns/{field}` | Update input type and dropdown options |
-| `GET` | `/api/settings/workflow` | Read Submission stages, Feedback reviewers, and A/B/C/P labels |
-| `PUT` | `/api/settings/workflow` | Update workflow structure and remap existing document state by position |
+| `GET` | `/api/settings/workflow` | Read Submission stages, Feedback reviewers, A/B/C/P labels, and Transmittal filter prefixes |
+| `PUT` | `/api/settings/workflow` | Update workflow structure, Transmittal prefixes, and remap existing document state by position |
 | `GET` | `/api/metadata/export` | Export documents and settings as JSON |
 | `POST` | `/api/metadata/import?mode=merge` | Merge a metadata backup |
 | `POST` | `/api/metadata/import?mode=replace` | Replace current metadata from a backup |
 | `POST` | `/api/metadata/import-csv?mode=merge` | Merge document rows parsed from a CSV file |
 | `POST` | `/api/metadata/import-csv?mode=replace` | Replace the document register with CSV rows |
 
-`PUT /api/settings/workflow` requires exactly six unique `submission_steps`, exactly two unique `feedback_reviewers`, and labels for all four fixed status codes (`A`, `B`, `C`, `P`). Workflow configuration is included in metadata exports and restores.
+`PUT /api/settings/workflow` requires exactly six unique `submission_steps`, exactly two unique `feedback_reviewers`, labels for all four fixed status codes (`A`, `B`, `C`, `P`), and at least one `transmittal_prefixes` entry. Workflow configuration is included in metadata exports and restores.
 
 CSV imports accept a JSON body with `rows` after the browser parses a selected CSV file. The Settings screen supports the same headers emitted by CSV export: `document_number`, `document_date`, `document_type`, `initiator`, `discipline`, `number_of_documents`, `transmittal_number`, `workflow_number`, `workflow_terminated`, `has_attachment`, `is_abandoned`, and `notes`. In merge mode, a matching Document Number updates only columns present in the CSV; new rows receive the active Workflow defaults.
 
