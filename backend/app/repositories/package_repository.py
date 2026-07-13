@@ -23,7 +23,7 @@ def period_bounds(period: str, today: date | None = None) -> tuple[date, date]:
 
 class PackageRepository:
     def __init__(self, db: Session): self.db = db
-    def list(self, *, period: str, search: str | None, discipline: str | None, document_type: str | None, sort_by: str, sort_order: str, page: int, page_size: int):
+    def list(self, *, period: str, search: str | None, discipline: str | None, document_type: str | None, transmittal_prefix: str | None, sort_by: str, sort_order: str, page: int, page_size: int):
         query = select(Package)
         if period != "all":
             start, end = period_bounds(period)
@@ -33,6 +33,7 @@ class PackageRepository:
             query = query.where(or_(Package.document_number.like(term), Package.document_title.like(term), Package.workflow_number.like(term), Package.transmittal_number.like(term), Package.initiator.like(term), Package.discipline.like(term)))
         if discipline: query = query.where(Package.discipline == discipline)
         if document_type: query = query.where(Package.document_type == document_type)
+        if transmittal_prefix: query = query.where(Package.transmittal_number.startswith(transmittal_prefix))
         count = self.db.scalar(select(func.count()).select_from(query.subquery())) or 0
         field = getattr(Package, sort_by if sort_by in SORTABLE_FIELDS else "order_index")
         order = asc(field) if sort_order == "asc" else desc(field)

@@ -12,6 +12,7 @@ DEFAULT_WORKFLOW = {
     "feedback_reviewers":["UTIBER","GDS"],
     "feedback_status_labels":{"A":"Approved","B":"Approved with comments","C":"Rejected","P":"Pending"},
     "feedback_status_colors":{"A":"#21815d","B":"#9b6816","C":"#b13f4c","P":"#4267bd"},
+    "transmittal_prefixes":["NFS-PCH-TRA-PZI-","NFS-PCH-TRA-RFI-","NFS-PCH-TRA-RPT-"],
 }
 
 DEFAULT_COLUMN_CONFIGS = {
@@ -75,6 +76,7 @@ class SettingsService:
         item.feedback_reviewers = data.feedback_reviewers
         item.feedback_status_labels = data.feedback_status_labels
         item.feedback_status_colors = data.feedback_status_colors
+        item.transmittal_prefixes = data.transmittal_prefixes
         self.db.commit(); self.db.refresh(item); return item
     def export(self):
         packages = list(self.db.scalars(select(Package).order_by(Package.order_index, Package.id)))

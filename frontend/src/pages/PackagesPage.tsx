@@ -16,15 +16,16 @@ const meta = {
   workflow: ['Workflow register', 'Track workflow references and external feedback across all documents.'],
   transmittal: ['Transmittal register', 'Review issued transmittals and their feedback status.'],
 } as const
-const defaultWorkflowConfig:WorkflowConfig={id:1,submission_steps:[...submissionSteps],feedback_reviewers:[...feedbackSteps],feedback_status_labels:{A:'Approved',B:'Approved with comments',C:'Rejected',P:'Pending'},feedback_status_colors:{A:'#21815d',B:'#9b6816',C:'#b13f4c',P:'#4267bd'},updated_at:''}
+const defaultWorkflowConfig:WorkflowConfig={id:1,submission_steps:[...submissionSteps],feedback_reviewers:[...feedbackSteps],feedback_status_labels:{A:'Approved',B:'Approved with comments',C:'Rejected',P:'Pending'},feedback_status_colors:{A:'#21815d',B:'#9b6816',C:'#b13f4c',P:'#4267bd'},transmittal_prefixes:['NFS-PCH-TRA-PZI-','NFS-PCH-TRA-RFI-','NFS-PCH-TRA-RPT-'],updated_at:''}
 
 export function PackagesPage({ kind }: { kind: PageKind }) {
   const { period: routePeriod } = useParams()
   const period = kind === 'documents' ? (routePeriod as Period || 'week') : 'all'
   const [search, setSearch] = useState('')
   const [discipline, setDiscipline] = useState('')
-  const [sortBy, setSortBy] = useState(kind === 'workflow' ? 'workflow_number' : kind === 'transmittal' ? 'transmittal_number' : 'order_index')
-  const [sortOrder, setSortOrder] = useState<'asc'|'desc'>('asc')
+  const [transmittalPrefix, setTransmittalPrefix] = useState('')
+  const [sortBy, setSortBy] = useState(kind === 'workflow' ? 'workflow_number' : kind === 'transmittal' ? 'transmittal_number' : 'document_date')
+  const [sortOrder, setSortOrder] = useState<'asc'|'desc'>(kind === 'transmittal' ? 'asc' : 'desc')
   const [selected, setSelected] = useState<Package|null>(null)
   const [editing, setEditing] = useState<Package|null>(null)
   const [editorOpen, setEditorOpen] = useState(false)
@@ -32,7 +33,7 @@ export function PackagesPage({ kind }: { kind: PageKind }) {
   const [page,setPage]=useState(1)
   const [pageSize,setPageSize]=useState(200)
   const queryClient = useQueryClient()
-  const params = { period, search: search || undefined, discipline: discipline || undefined, sort_by: sortBy, sort_order: sortOrder, page, page_size: pageSize }
+  const params = { period, search: search || undefined, discipline: discipline || undefined, transmittal_prefix:kind==='transmittal'?(transmittalPrefix||undefined):undefined, sort_by: sortBy, sort_order: sortOrder, page, page_size: pageSize }
   const query = useQuery({ queryKey: ['packages', params], queryFn: () => packagesApi.list(params), placeholderData:previous=>previous })
   const configs = useQuery({ queryKey:['column-configs'], queryFn:settingsApi.listColumns })
   const workflowQuery = useQuery({ queryKey:['workflow-config'], queryFn:settingsApi.getWorkflow })
@@ -69,7 +70,12 @@ export function PackagesPage({ kind }: { kind: PageKind }) {
   })
   const titlePeriod = period === 'week' ? 'This week' : period === 'month' ? 'This month' : period === 'year' ? 'This year' : 'All records'
   const totalPages=Math.max(1,Math.ceil((query.data?.total||0)/pageSize))
-  useEffect(()=>setPage(1),[period,search,discipline,sortBy,sortOrder,pageSize])
+  useEffect(()=>{
+    setSortBy(kind==='workflow'?'workflow_number':kind==='transmittal'?'transmittal_number':'document_date')
+    setSortOrder(kind==='transmittal'?'asc':'desc')
+    setTransmittalPrefix('')
+  },[kind])
+  useEffect(()=>setPage(1),[period,search,discipline,transmittalPrefix,sortBy,sortOrder,pageSize])
   useEffect(()=>{if(query.data&&page>totalPages)setPage(totalPages)},[query.data,page,totalPages])
   const disciplines = useMemo(() => ['Civil','Structural','Architectural','Electrical','Mechanical','Geotechnical'], [])
   const visibleItems=useMemo(()=>{
@@ -92,9 +98,9 @@ export function PackagesPage({ kind }: { kind: PageKind }) {
   return <>
     <div className="page-header"><div><div className="breadcrumb">Document Control <span>/</span> {kind === 'documents' ? titlePeriod : meta[kind][0]}</div><h1>{meta[kind][0]}</h1><p>{meta[kind][1]}</p></div><div className="header-actions"><button className="primary-button" onClick={() => {setEditing(null);setEditorOpen(true)}}><Plus size={17}/> New document</button></div></div>
     <section className="data-card">
-      <div className="table-toolbar"><div className="search-box"><Search size={17}/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search documents, workflows, people…"/><kbd>⌘ K</kbd></div><div className="toolbar-filters"><label><Filter size={15}/><select value={discipline} onChange={e=>setDiscipline(e.target.value)}><option value="">All disciplines</option>{disciplines.map(d=><option key={d}>{d}</option>)}</select></label><AdvancedFilter rules={filters} onChange={setFilters}/></div></div>
+      <div className="table-toolbar"><div className="search-box"><Search size={17}/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search documents, workflows, people…"/><kbd>⌘ K</kbd></div><div className="toolbar-filters">{kind==='transmittal'&&<label className={`transmittal-prefix-filter ${transmittalPrefix?'active':''}`}><Filter size={16}/><span>Type</span><select aria-label="Filter by transmittal number prefix" value={transmittalPrefix} onChange={e=>setTransmittalPrefix(e.target.value)}><option value="">All transmittals</option>{workflowConfig.transmittal_prefixes.map(prefix=><option key={prefix} value={prefix}>{prefix}</option>)}</select></label>}<label><Filter size={15}/><select value={discipline} onChange={e=>setDiscipline(e.target.value)}><option value="">All disciplines</option>{disciplines.map(d=><option key={d}>{d}</option>)}</select></label><AdvancedFilter rules={filters} onChange={setFilters}/></div></div>
       <div className="result-strip"><div><strong>{filters.length?visibleItems.length:query.data?.total??'—'}</strong> documents <span>·</span> {titlePeriod}{filters.length>0&&<span>· {filters.length} filters</span>}</div><div className="legend"><i className="done"/> Complete <i/> Pending</div></div>
-      {query.isLoading ? <LoadingState/> : query.isError ? <ErrorState message={getApiError(query.error)} retry={()=>query.refetch()}/> : !visibleItems.length ? <EmptyState filtered={!!search || !!discipline || !!filters.length}/> : <PackageTable
+      {query.isLoading ? <LoadingState/> : query.isError ? <ErrorState message={getApiError(query.error)} retry={()=>query.refetch()}/> : !visibleItems.length ? <EmptyState filtered={!!search || !!discipline || !!transmittalPrefix || !!filters.length}/> : <PackageTable
         items={visibleItems} kind={kind} configs={configs.data||[]} submissionSteps={currentSubmissionSteps} feedbackReviewers={currentFeedbackReviewers} feedbackStatusLabels={workflowConfig.feedback_status_labels} feedbackStatusColors={workflowConfig.feedback_status_colors} {...{sortBy,sortOrder}}
         onSort={key => { if(sortBy===key) setSortOrder(v=>v==='asc'?'desc':'asc'); else {setSortBy(key);setSortOrder('asc')} }} onView={setSelected} onEdit={item=>{setEditing(item);setEditorOpen(true)}}
         onColumnResize={(field,width)=>{const config=configs.data?.find(item=>item.field_name===field);if(config)resizeColumn.mutate({config,width})}} onReorder={ids=>reorder.mutate({ids,startIndex:(page-1)*pageSize})} onAdvance={advance} onDuplicate={item=>duplicate.mutate(item)} onToggleAbandoned={item=>quickUpdate.mutate({id:item.id,data:{is_abandoned:!item.is_abandoned}})} onToggleTerminate={item=>quickUpdate.mutate({id:item.id,data:{workflow_terminated:!item.workflow_terminated}})} onDelete={item=>remove.mutate(item)}

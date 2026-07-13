@@ -13,11 +13,23 @@ class WorkflowConfigUpdate(BaseModel):
     feedback_reviewers: list[str] = Field(min_length=2, max_length=2)
     feedback_status_labels: dict[Literal["A","B","C","P"], str]
     feedback_status_colors: dict[Literal["A","B","C","P"], str] = Field(default_factory=lambda:{"A":"#21815d","B":"#9b6816","C":"#b13f4c","P":"#4267bd"})
+    transmittal_prefixes: list[str] = Field(
+        default_factory=lambda: ["NFS-PCH-TRA-PZI-", "NFS-PCH-TRA-RFI-", "NFS-PCH-TRA-RPT-"],
+        min_length=1,
+        max_length=20,
+    )
     @field_validator("submission_steps", "feedback_reviewers")
     @classmethod
     def validate_unique_names(cls, value: list[str]):
         cleaned = [item.strip() for item in value]
         if any(not item for item in cleaned) or len(set(cleaned)) != len(cleaned): raise ValueError("Workflow names must be non-empty and unique")
+        return cleaned
+    @field_validator("transmittal_prefixes")
+    @classmethod
+    def validate_transmittal_prefixes(cls, value: list[str]):
+        cleaned = list(dict.fromkeys(item.strip() for item in value if item.strip()))
+        if not cleaned: raise ValueError("At least one transmittal prefix is required")
+        if any(len(item) > 80 for item in cleaned): raise ValueError("Transmittal prefixes must be 80 characters or fewer")
         return cleaned
     @field_validator("feedback_status_labels")
     @classmethod

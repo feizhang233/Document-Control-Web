@@ -35,13 +35,18 @@ export function PackageEditor({ item, configs, workflowConfig, open, saving, onC
   const [form, setForm] = useState<PackageInput>(blank)
   const configMap = useMemo(() => Object.fromEntries(configs.map(c => [c.field_name,c])) as Partial<Record<BaseField,ColumnConfig>>, [configs])
   useEffect(() => {
-    if (open) setForm(item ? {
+    if (open) {
+      const firstConfiguredOption=(field:BaseField,fallbackValue='')=>configMap[field]?.input_type==='select'?(configMap[field]?.options[0]||fallbackValue):fallbackValue
+      const defaultDocumentType=firstConfiguredOption('document_type',fallback.document_type?.[0]||'')
+      const defaultDiscipline=firstConfiguredOption('discipline',fallback.discipline?.[0]||'')
+      setForm(item ? {
       document_number:item.document_number, document_title:item.document_title, document_date:item.document_date, document_type:item.document_type, initiator:item.initiator,
       discipline:item.discipline, number_of_documents:item.number_of_documents, transmittal_number:item.transmittal_number,
       workflow_terminated:item.workflow_terminated, notes:item.notes, has_attachment:item.has_attachment, is_abandoned:item.is_abandoned,
       workflow_number:item.workflow_number, submission_progress:{...item.submission_progress}, feedback:{...item.feedback}, feedback_status:{...item.feedback_status}, order_index:item.order_index,
-    } : {...blank, document_date:today(), transmittal_number:defaultTransmittalNumber(blank.document_type), submission_progress:Object.fromEntries(workflowConfig.submission_steps.map(step=>[step,false])), feedback:{...Object.fromEntries(workflowConfig.feedback_reviewers.map(reviewer=>[reviewer,false])),Terminate:false},feedback_status:Object.fromEntries(workflowConfig.feedback_reviewers.map(reviewer=>[reviewer,'P']))})
-  }, [item, open, workflowConfig])
+    } : {...blank, document_date:today(), document_type:defaultDocumentType, discipline:defaultDiscipline, transmittal_number:defaultTransmittalNumber(defaultDocumentType), submission_progress:Object.fromEntries(workflowConfig.submission_steps.map(step=>[step,false])), feedback:{...Object.fromEntries(workflowConfig.feedback_reviewers.map(reviewer=>[reviewer,false])),Terminate:false},feedback_status:Object.fromEntries(workflowConfig.feedback_reviewers.map(reviewer=>[reviewer,'P']))})
+    }
+  }, [item, open, workflowConfig, configMap])
   if (!open) return null
   const set = <K extends keyof PackageInput>(key: K, value: PackageInput[K]) => setForm(prev => ({...prev,[key]:value}))
   const setBase = (field: BaseField, raw: string) => {
