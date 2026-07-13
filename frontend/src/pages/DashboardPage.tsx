@@ -25,7 +25,14 @@ export function DashboardPage() {
   const gdsCompleted=items.filter(item=>!item.feedback.Terminate&&approvalFinished(item,gdsReviewer)).length
   const utiberCompleted=items.filter(item=>!item.feedback.Terminate&&!approvalFinished(item,gdsReviewer)&&approvalFinished(item,utiberReviewer)).length
   const awaitingApproval=items.length-terminated-gdsCompleted-utiberCompleted
-  const gdsCompletionRate=items.length?Math.round(gdsCompleted/items.length*100):0
+  const overviewRows=[
+    {label:'GDS completed',count:gdsCompleted,color:'#32a87b'},
+    {label:'UTIBER completed and Waiting GDS',count:utiberCompleted,color:'#4974e9'},
+    {label:'Awaiting Utiber',count:awaitingApproval,color:'#e0a044'},
+    {label:'Terminate',count:terminated,color:'#858d99'},
+  ]
+  let overviewOffset=0
+  const overviewGradient=items.length?`conic-gradient(${overviewRows.map(row=>{const start=overviewOffset;overviewOffset+=row.count/items.length*100;return `${row.color} ${start}% ${overviewOffset}%`}).join(',')})`:'#e7ebf1'
   const pending=items.filter(item=>!item.is_abandoned&&!currentSubmissionSteps.every(step=>item.submission_progress[step])).sort((left,right)=>completedSteps(right,currentSubmissionSteps)-completedSteps(left,currentSubmissionSteps)).slice(0,6)
   const today=new Date()
   const todayChanges=(notifications?.items||[]).filter(item=>new Date(item.created_at).toDateString()===today.toDateString()).filter((item,index,array)=>array.findIndex(candidate=>(candidate.workflow_number||candidate.document_number)===(item.workflow_number||item.document_number))===index).slice(0,6)
@@ -51,7 +58,7 @@ export function DashboardPage() {
 
     <div className="dashboard-row dashboard-row-secondary">
       <section className="panel dashboard-panel status-panel"><div className="panel-heading"><div><h2>Workflow status</h2><p>Feedback status distribution across all documents</p></div><span className="trend"><TrendingUp size={14}/> Live</span></div><div className="status-overview"><div className="status-donut" style={{background:statusGradient}}><div><strong>{items.length}</strong><span>workflows</span></div></div><div className="status-legend">{statusRows.map(row=><div key={row.code}><i style={{background:row.color}}/><b>{row.code}</b><span>{row.label}</span><strong>{items.length?Math.round(row.count/items.length*100):0}%</strong><small>{row.count}</small></div>)}</div></div><Link className="panel-action" to="/workflow"><Send/> Review status details <ArrowRight/></Link></section>
-      <section className="panel dashboard-panel overview-panel"><div className="panel-heading"><div><h2>Workflow overview</h2><p>Current approval progress</p></div><span className="trend"><TrendingUp size={14}/> Live</span></div><div className="donut-wrap"><div className="donut" style={{'--progress':`${gdsCompletionRate}%`,'--progress-color':'#32a87b'} as React.CSSProperties}><div><strong>{gdsCompletionRate}%</strong><span>GDS completed</span></div></div><div className="donut-legend"><div><i className="green"/><span>GDS completed (A/B/C)</span><strong>{gdsCompleted}</strong></div><div><i className="blue"/><span>UTIBER completed</span><strong>{utiberCompleted}</strong></div><div><i className="amber"/><span>Awaiting approval</span><strong>{awaitingApproval}</strong></div><div><i className="grey"/><span>Terminate</span><strong>{terminated}</strong></div></div></div><Link className="panel-action" to="/workflow"><Send/> Review workflow register <ArrowRight/></Link></section>
+      <section className="panel dashboard-panel overview-panel"><div className="panel-heading"><div><h2>Workflow overview</h2><p>Current approval progress</p></div><span className="trend"><TrendingUp size={14}/> Live</span></div><div className="donut-wrap"><div className="donut" style={{background:overviewGradient}}><div><strong>{items.length}</strong><span>workflows</span></div></div><div className="donut-legend">{overviewRows.map(row=><div key={row.label}><i style={{background:row.color}}/><span>{row.label}</span><strong>{row.count}</strong></div>)}</div></div><Link className="panel-action" to="/workflow"><Send/> Review workflow register <ArrowRight/></Link></section>
     </div>
   </>
 }
