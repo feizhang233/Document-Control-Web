@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-SUBMISSION_STEPS = ["Transmittal Preparation","DCO Backup","Signature Process","Workflow Initiation","Email Feedback","Data Registration"]
+SUBMISSION_STEPS = ["Transmittal Preparation","DCO Backup","Signature Process","Workflow Initiation","Email Feedback"]
 FEEDBACK_STEPS = ["UTIBER","GDS","Terminate"]
 FEEDBACK_STATUS_VALUES = {"A", "B", "C", "P"}
 
@@ -26,7 +26,7 @@ class PackageBase(BaseModel):
     @field_validator("submission_progress")
     @classmethod
     def validate_progress(cls, value: dict[str,bool]):
-        if len(value) != 6: raise ValueError("submission_progress must contain exactly six workflow steps")
+        if len(value) != 5: raise ValueError("submission_progress must contain exactly five workflow steps")
         return value
     @field_validator("feedback", mode="before")
     @classmethod

@@ -9,7 +9,7 @@ CONFIGURABLE_FIELDS = {
 }
 
 class WorkflowConfigUpdate(BaseModel):
-    submission_steps: list[str] = Field(min_length=6, max_length=6)
+    submission_steps: list[str] = Field(min_length=5, max_length=5)
     feedback_reviewers: list[str] = Field(min_length=2, max_length=2)
     feedback_status_labels: dict[Literal["A","B","C","P"], str]
     feedback_status_colors: dict[Literal["A","B","C","P"], str] = Field(default_factory=lambda:{"A":"#21815d","B":"#9b6816","C":"#b13f4c","P":"#4267bd"})

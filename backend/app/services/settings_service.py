@@ -8,7 +8,7 @@ from app.models.workflow_config import WorkflowConfig
 from app.schemas.settings import CONFIGURABLE_FIELDS, ColumnConfigUpdate, CsvMetadataImport, MetadataImport, WorkflowConfigUpdate
 
 DEFAULT_WORKFLOW = {
-    "submission_steps":["Transmittal Preparation","DCO Backup","Signature Process","Workflow Initiation","Email Feedback","Data Registration"],
+    "submission_steps":["Transmittal Preparation","DCO Backup","Signature Process","Workflow Initiation","Email Feedback"],
     "feedback_reviewers":["UTIBER","GDS"],
     "feedback_status_labels":{"A":"Approved","B":"Approved with comments","C":"Rejected","P":"Pending"},
     "feedback_status_colors":{"A":"#21815d","B":"#9b6816","C":"#b13f4c","P":"#4267bd"},

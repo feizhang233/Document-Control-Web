@@ -77,16 +77,20 @@ export function PackagesPage({ kind }: { kind: PageKind }) {
   },[kind])
   useEffect(()=>setPage(1),[period,search,discipline,transmittalPrefix,sortBy,sortOrder,pageSize])
   useEffect(()=>{if(query.data&&page>totalPages)setPage(totalPages)},[query.data,page,totalPages])
-  const disciplines = useMemo(() => ['Civil','Structural','Architectural','Electrical','Mechanical','Geotechnical'], [])
+  const disciplines = useMemo(()=>{
+    const config=configs.data?.find(item=>item.field_name==='discipline')
+    if(config?.input_type==='select')return config.options
+    return Array.from(new Set((query.data?.items||[]).map(item=>item.discipline).filter(Boolean))).sort()
+  },[configs.data,query.data?.items])
   const visibleItems=useMemo(()=>{
     const items=query.data?.items||[]
     const valueFor=(item:Package,field:FilterRule['field']):string=>{
-      if(field==='submission_progress')return String(Math.round(Object.values(item.submission_progress).filter(Boolean).length/6*100))
+      if(field==='submission_progress')return String(Math.round(currentSubmissionSteps.filter(step=>item.submission_progress[step]).length/currentSubmissionSteps.length*100))
       if(field==='feedback')return item.feedback.Terminate?'terminated':String(Math.round(currentFeedbackReviewers.filter(step=>item.feedback[step]).length/currentFeedbackReviewers.length*100))
       return String(item[field]??'')
     }
     return items.filter(item=>filters.every(rule=>{if(!rule.value)return true;const actual=valueFor(item,rule.field).toLowerCase();const expected=rule.value.toLowerCase();return rule.operator==='contains'?actual.includes(expected):rule.operator==='equals'?actual===expected:actual!==expected}))
-  },[query.data?.items,filters,currentFeedbackReviewers])
+  },[query.data?.items,filters,currentFeedbackReviewers,currentSubmissionSteps])
   const advance=(item:Package,type:'submission'|'feedback')=>{
     if(type==='submission'){
       const next=currentSubmissionSteps.find(step=>!item.submission_progress[step]);if(!next)return

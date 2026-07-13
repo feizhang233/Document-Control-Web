@@ -173,7 +173,7 @@ def test_workflow_configuration_reorders_and_remaps_existing_data(client):
     assert current.json()["submission_steps"][1] == "DCO Backup"
     assert current.json()["transmittal_prefixes"] == ["NFS-PCH-TRA-PZI-", "NFS-PCH-TRA-RFI-", "NFS-PCH-TRA-RPT-"]
     changed = client.put("/api/settings/workflow", json={
-        "submission_steps":["Preparation","Backup","Signature","Initiation","Email","Registration"],
+        "submission_steps":["Preparation","Backup","Signature","Initiation","Email"],
         "feedback_reviewers":["Reviewer One","Reviewer Two"],
         "feedback_status_labels":{"A":"Accepted","B":"Accepted with comments","C":"Rejected","P":"Pending"},
         "feedback_status_colors":{"A":"#15803d","B":"#a16207","C":"#b91c1c","P":"#1d4ed8"},
