@@ -23,8 +23,8 @@ const fields: Array<{ name: BaseField; label: string; placeholder?: string }> = 
   {name:'initiator',label:'Initiator',placeholder:'Full name'},
   {name:'discipline',label:'Discipline'},
   {name:'number_of_documents',label:'Number of documents'},
-  {name:'workflow_number',label:'Workflow number',placeholder:'WF-2026-0001'},
-  {name:'transmittal_number',label:'Transmittal number',placeholder:'TR-2026-0001'},
+  {name:'workflow_number',label:'Workflow number',placeholder:'WF-000000'},
+  {name:'transmittal_number',label:'Transmittal number',placeholder:'NFS-PCH-TRA-'},
 ]
 const fallback: Partial<Record<BaseField, string[]>> = {
   document_type:['Drawing','Technical Report','Method Statement','Specification','Calculation'],
