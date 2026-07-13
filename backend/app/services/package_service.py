@@ -21,11 +21,18 @@ class PackageService:
             values["document_number"] = f"DRAFT-{date.today():%Y%m%d}-{uuid4().hex[:8].upper()}"
         tracked = [key for key in ("workflow_terminated", "submission_progress", "feedback", "feedback_status") if key in values and values[key] != getattr(item, key)]
         updated = self.repo.update(item, values)
-        if tracked:
-            labels = {"workflow_terminated":"workflow termination", "submission_progress":"submission progress", "feedback":"feedback", "feedback_status":"feedback status"}
-            NotificationService(self.repo.db).create_workflow_update(
+        notifications = NotificationService(self.repo.db)
+        if "submission_progress" in tracked:
+            notifications.create_submission_progress_update(
                 workflow_number=updated.workflow_number, document_number=updated.document_number,
-                message=f"Updated {', '.join(labels[key] for key in tracked)} for {updated.document_number}.",
+                message=f"Submission progress updated for {updated.document_number}.",
+            )
+        feedback_changes = [key for key in ("workflow_terminated", "feedback", "feedback_status") if key in tracked]
+        if feedback_changes:
+            labels = {"workflow_terminated":"workflow termination", "feedback":"feedback", "feedback_status":"feedback status"}
+            notifications.create_workflow_feedback_update(
+                workflow_number=updated.workflow_number, document_number=updated.document_number,
+                message=f"Updated {', '.join(labels[key] for key in feedback_changes)} for {updated.document_number}.",
             )
         return updated
     def require(self, package_id: int):

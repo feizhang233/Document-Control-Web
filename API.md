@@ -24,7 +24,7 @@ X-API-Key: your-api-key
 Content-Type: application/json
 ```
 
-The endpoint is intended for a daily synchronization script. It locates the document by Workflow Number, applies the supplied fields, and creates an unread notification in DocFlow.
+The endpoint is intended for a daily synchronization script. It locates the document by Workflow Number, applies the supplied fields, and creates categorized unread notifications in DocFlow. A request that updates both Submission Progress and Workflow Feedback creates one notification in each category.
 
 All body fields are optional, but at least one workflow or feedback field must be supplied:
 
@@ -91,7 +91,14 @@ Responses:
 | `PATCH` | `/api/notifications/{id}/read` | Mark one notification as read |
 | `PATCH` | `/api/notifications/read-all` | Mark every notification as read |
 
-Notifications are generated when workflow status, submission progress, or feedback changes through the UI or external automation endpoint.
+Notifications are generated through the UI or external automation endpoint and returned with one of these `notification_type` values:
+
+| Type | Generated for |
+| --- | --- |
+| `submission_progress` | Submission Progress changes |
+| `workflow_feedback` | Feedback, Feedback Status, or Workflow termination changes |
+
+The notification popover displays these types in separate Submission Progress and Workflow Feedback sections. Legacy notification records are migrated into the appropriate category where possible.
 
 The former Workflow Status field is removed. Feedback is now the workflow feedback state, with `UTIBER`, `GDS`, and `Terminate` options.
 

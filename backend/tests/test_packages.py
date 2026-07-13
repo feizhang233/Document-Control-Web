@@ -213,8 +213,23 @@ def test_external_workflow_update_creates_notification(client):
     assert not any(updated.json()["submission_progress"].values())
     notifications = client.get("/api/notifications").json()
     assert notifications["unread_count"] == 1
+    assert notifications["items"][0]["notification_type"] == "workflow_feedback"
     assert notifications["items"][0]["workflow_number"] == "WF-001"
     assert client.patch("/api/notifications/read-all").status_code == 204
     assert client.get("/api/notifications").json()["unread_count"] == 0
     assert client.delete("/api/notifications").status_code == 204
     assert client.get("/api/notifications").json()["items"] == []
+
+def test_submission_and_feedback_updates_create_separate_notification_categories(client):
+    created = client.post("/api/packages", json=payload()).json()
+    progress = dict(created["submission_progress"])
+    progress[SUBMISSION_STEPS[0]] = True
+    response = client.patch(f"/api/packages/{created['id']}", json={
+        "submission_progress":progress,
+        "feedback":{"UTIBER":True,"GDS":False,"Terminate":False},
+        "feedback_status":{"UTIBER":"A","GDS":"P"},
+    })
+    assert response.status_code == 200
+    notifications = client.get("/api/notifications").json()
+    assert notifications["unread_count"] == 2
+    assert {item["notification_type"] for item in notifications["items"]} == {"submission_progress", "workflow_feedback"}

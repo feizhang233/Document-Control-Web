@@ -7,7 +7,7 @@ class Notification(Base):
     __tablename__ = "notifications"
     __table_args__ = (Index("ix_notifications_is_read", "is_read"), Index("ix_notifications_created_at", "created_at"))
     id: Mapped[int] = mapped_column(primary_key=True)
-    notification_type: Mapped[str] = mapped_column(String(40), default="workflow", nullable=False)
+    notification_type: Mapped[str] = mapped_column(String(40), default="workflow_feedback", nullable=False)
     title: Mapped[str] = mapped_column(String(180), nullable=False)
     message: Mapped[str] = mapped_column(String(500), nullable=False)
     workflow_number: Mapped[str | None] = mapped_column(String(80))

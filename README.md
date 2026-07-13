@@ -15,7 +15,7 @@ DocFlow is a maintainable first-version engineering document control system (Bas
 - CSV document import/export with merge and full-replace modes
 - Per-column text/dropdown configuration with custom option lists
 - Settings editor for Submission stage names/order, Feedback reviewer names, and A/B/C/P labels
-- Persistent Workflow update notifications with unread state
+- Categorized Submission Progress and Workflow Feedback notifications with unread state
 - API-key-protected endpoint for daily external Workflow synchronization
 - Click-to-advance Submission progress with equally styled current and following step labels
 - Shared draggable Submission slider in document details and editing
