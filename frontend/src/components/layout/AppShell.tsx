@@ -6,10 +6,16 @@ import { NotificationsPopover } from './NotificationsPopover'
 
 export function AppShell() {
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem('docflow-sidebar-collapsed') === 'true')
   const [notificationsOpen, setNotificationsOpen] = useState(false)
+  const toggleSidebar=()=>setSidebarCollapsed(value=>{
+    const next=!value
+    localStorage.setItem('docflow-sidebar-collapsed',String(next))
+    return next
+  })
   return (
-    <div className="app-shell">
-      <Sidebar mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
+    <div className={`app-shell ${sidebarCollapsed?'sidebar-is-collapsed':''}`}>
+      <Sidebar mobileOpen={mobileOpen} collapsed={sidebarCollapsed} onToggleCollapsed={toggleSidebar} onClose={() => setMobileOpen(false)} />
       <div className="main-shell">
         <header className="topbar">
           <button className="icon-button menu-button" onClick={() => setMobileOpen(true)} aria-label="Open navigation"><Menu size={19} /></button>

@@ -233,3 +233,4 @@ def test_submission_and_feedback_updates_create_separate_notification_categories
     notifications = client.get("/api/notifications").json()
     assert notifications["unread_count"] == 2
     assert {item["notification_type"] for item in notifications["items"]} == {"submission_progress", "workflow_feedback"}
+    assert {item["package_id"] for item in notifications["items"]} == {created["id"]}

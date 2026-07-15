@@ -24,6 +24,7 @@ class PackageService:
         notifications = NotificationService(self.repo.db)
         if "submission_progress" in tracked:
             notifications.create_submission_progress_update(
+                package_id=updated.id,
                 workflow_number=updated.workflow_number, document_number=updated.document_number,
                 message=f"Submission progress updated for {updated.document_number}.",
             )
@@ -31,6 +32,7 @@ class PackageService:
         if feedback_changes:
             labels = {"workflow_terminated":"workflow termination", "feedback":"feedback", "feedback_status":"feedback status"}
             notifications.create_workflow_feedback_update(
+                package_id=updated.id,
                 workflow_number=updated.workflow_number, document_number=updated.document_number,
                 message=f"Updated {', '.join(labels[key] for key in feedback_changes)} for {updated.document_number}.",
             )

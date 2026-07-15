@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Filter, Plus, Search } from 'lucide-react'
-import { useParams } from 'react-router-dom'
+import { useLocation, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { getApiError, packagesApi, settingsApi } from '../lib/api'
 import { feedbackSteps, submissionSteps, type FilterRule, type Package, type PackageInput, type PageKind, type Period, type WorkflowConfig } from '../types/package'
@@ -20,6 +20,10 @@ const defaultWorkflowConfig:WorkflowConfig={id:1,submission_steps:[...submission
 
 export function PackagesPage({ kind }: { kind: PageKind }) {
   const { period: routePeriod } = useParams()
+  const location=useLocation()
+  const focusParams=useMemo(()=>new URLSearchParams(location.search),[location.search])
+  const focusValue=focusParams.get('focus')||''
+  const focusPackageId=Number(focusParams.get('package'))||null
   const period = kind === 'documents' ? (routePeriod as Period || 'week') : 'all'
   const [search, setSearch] = useState('')
   const [discipline, setDiscipline] = useState('')
@@ -32,7 +36,10 @@ export function PackagesPage({ kind }: { kind: PageKind }) {
   const [filters, setFilters] = useState<FilterRule[]>([])
   const [page,setPage]=useState(1)
   const [pageSize,setPageSize]=useState(200)
+  const [highlightedPackageId,setHighlightedPackageId]=useState<number|null>(null)
   const queryClient = useQueryClient()
+  const focusPackageQuery=useQuery({queryKey:['package-focus',focusPackageId],queryFn:()=>packagesApi.get(focusPackageId!),enabled:!!focusPackageId,retry:false})
+  const focusSearchValue=focusPackageQuery.data?.document_number||focusValue
   const params = { period, search: search || undefined, discipline: discipline || undefined, transmittal_prefix:kind==='transmittal'?(transmittalPrefix||undefined):undefined, sort_by: sortBy, sort_order: sortOrder, page, page_size: pageSize }
   const query = useQuery({ queryKey: ['packages', params], queryFn: () => packagesApi.list(params), placeholderData:previous=>previous })
   const configs = useQuery({ queryKey:['column-configs'], queryFn:settingsApi.listColumns })
@@ -77,6 +84,23 @@ export function PackagesPage({ kind }: { kind: PageKind }) {
   },[kind])
   useEffect(()=>setPage(1),[period,search,discipline,transmittalPrefix,sortBy,sortOrder,pageSize])
   useEffect(()=>{if(query.data&&page>totalPages)setPage(totalPages)},[query.data,page,totalPages])
+  useEffect(()=>{
+    if(!focusValue&&!focusPackageId)return
+    setSearch(focusSearchValue)
+    setDiscipline('')
+    setTransmittalPrefix('')
+    setFilters([])
+    setPage(1)
+  },[focusValue,focusPackageId,focusSearchValue,location.key])
+  useEffect(()=>{
+    if(!query.data?.items.length||(!focusValue&&!focusPackageId))return
+    const target=query.data.items.find(item=>focusPackageId?item.id===focusPackageId:item.document_number===focusValue||item.workflow_number===focusValue)
+    if(!target)return
+    setHighlightedPackageId(target.id)
+    const scrollTimer=window.setTimeout(()=>document.querySelector<HTMLTableRowElement>(`[data-package-id="${target.id}"]`)?.scrollIntoView({behavior:'smooth',block:'center',inline:'nearest'}),50)
+    const clearTimer=window.setTimeout(()=>setHighlightedPackageId(current=>current===target.id?null:current),2600)
+    return()=>{window.clearTimeout(scrollTimer);window.clearTimeout(clearTimer)}
+  },[query.data?.items,focusValue,focusPackageId,location.key])
   const disciplines = useMemo(()=>{
     const config=configs.data?.find(item=>item.field_name==='discipline')
     if(config?.input_type==='select')return config.options
@@ -105,7 +129,7 @@ export function PackagesPage({ kind }: { kind: PageKind }) {
       <div className="table-toolbar"><div className="search-box"><Search size={17}/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search documents, workflows, people…"/><kbd>⌘ K</kbd></div><div className="toolbar-filters">{kind==='transmittal'&&<label className={`transmittal-prefix-filter ${transmittalPrefix?'active':''}`}><Filter size={16}/><span>Type</span><select aria-label="Filter by transmittal number prefix" value={transmittalPrefix} onChange={e=>setTransmittalPrefix(e.target.value)}><option value="">All transmittals</option>{workflowConfig.transmittal_prefixes.map(prefix=><option key={prefix} value={prefix}>{prefix}</option>)}</select></label>}<label><Filter size={15}/><select value={discipline} onChange={e=>setDiscipline(e.target.value)}><option value="">All disciplines</option>{disciplines.map(d=><option key={d}>{d}</option>)}</select></label><AdvancedFilter rules={filters} onChange={setFilters}/></div></div>
       <div className="result-strip"><div><strong>{filters.length?visibleItems.length:query.data?.total??'—'}</strong> documents <span>·</span> {titlePeriod}{filters.length>0&&<span>· {filters.length} filters</span>}</div><div className="legend"><i className="done"/> Complete <i/> Pending</div></div>
       {query.isLoading ? <LoadingState/> : query.isError ? <ErrorState message={getApiError(query.error)} retry={()=>query.refetch()}/> : !visibleItems.length ? <EmptyState filtered={!!search || !!discipline || !!transmittalPrefix || !!filters.length}/> : <PackageTable
-        items={visibleItems} kind={kind} configs={configs.data||[]} submissionSteps={currentSubmissionSteps} feedbackReviewers={currentFeedbackReviewers} feedbackStatusLabels={workflowConfig.feedback_status_labels} feedbackStatusColors={workflowConfig.feedback_status_colors} {...{sortBy,sortOrder}}
+        items={visibleItems} highlightedPackageId={highlightedPackageId} kind={kind} configs={configs.data||[]} submissionSteps={currentSubmissionSteps} feedbackReviewers={currentFeedbackReviewers} feedbackStatusLabels={workflowConfig.feedback_status_labels} feedbackStatusColors={workflowConfig.feedback_status_colors} {...{sortBy,sortOrder}}
         onSort={key => { if(sortBy===key) setSortOrder(v=>v==='asc'?'desc':'asc'); else {setSortBy(key);setSortOrder('asc')} }} onView={setSelected} onEdit={item=>{setEditing(item);setEditorOpen(true)}}
         onColumnResize={(field,width)=>{const config=configs.data?.find(item=>item.field_name===field);if(config)resizeColumn.mutate({config,width})}} onReorder={ids=>reorder.mutate({ids,startIndex:(page-1)*pageSize})} onAdvance={advance} onDuplicate={item=>duplicate.mutate(item)} onToggleAbandoned={item=>quickUpdate.mutate({id:item.id,data:{is_abandoned:!item.is_abandoned}})} onToggleTerminate={item=>quickUpdate.mutate({id:item.id,data:{workflow_terminated:!item.workflow_terminated}})} onDelete={item=>remove.mutate(item)}
       />}

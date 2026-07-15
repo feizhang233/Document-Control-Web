@@ -17,6 +17,7 @@ interface ListParams {
 
 export const packagesApi = {
   list: async (params: ListParams) => (await client.get<PackageListResponse>('/packages', { params })).data,
+  get: async (id: number) => (await client.get<Package>(`/packages/${id}`)).data,
   listAll: async (params: Omit<ListParams,'page'|'page_size'> = {}) => {
     const first=(await client.get<PackageListResponse>('/packages',{params:{...params,page:1,page_size:200}})).data
     if(first.items.length>=first.total)return first

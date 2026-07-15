@@ -38,11 +38,13 @@ def update_workflow(workflow_number: str, data: ExternalWorkflowUpdate, db: Sess
     notifications = NotificationService(db)
     if data.submission_progress is not None:
         notifications.create_submission_progress_update(
+            package_id=item.id,
             workflow_number=workflow_number, document_number=item.document_number,
             message=data.message or f"Submission progress updated for {item.document_number}.",
         )
     if data.feedback is not None or data.feedback_status is not None or data.terminate_workflow is not None:
         notifications.create_workflow_feedback_update(
+            package_id=item.id,
             workflow_number=workflow_number, document_number=item.document_number,
             message=data.message or ("Workflow terminated." if data.terminate_workflow else f"Workflow feedback updated for {item.document_number}."),
         )
