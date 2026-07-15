@@ -215,6 +215,7 @@ def test_external_workflow_update_creates_notification(client):
     assert notifications["unread_count"] == 1
     assert notifications["items"][0]["notification_type"] == "workflow_feedback"
     assert notifications["items"][0]["workflow_number"] == "WF-001"
+    assert "UTIBER approval: B – Approved with comments" in notifications["items"][0]["message"]
     assert client.patch("/api/notifications/read-all").status_code == 204
     assert client.get("/api/notifications").json()["unread_count"] == 0
     assert client.delete("/api/notifications").status_code == 204
@@ -234,3 +235,5 @@ def test_submission_and_feedback_updates_create_separate_notification_categories
     assert notifications["unread_count"] == 2
     assert {item["notification_type"] for item in notifications["items"]} == {"submission_progress", "workflow_feedback"}
     assert {item["package_id"] for item in notifications["items"]} == {created["id"]}
+    feedback_notification = next(item for item in notifications["items"] if item["notification_type"] == "workflow_feedback")
+    assert "UTIBER approval: A – Approved" in feedback_notification["message"]

@@ -6,7 +6,7 @@ from app.db.session import get_db
 from app.repositories.package_repository import PackageRepository
 from app.schemas.notification import ExternalWorkflowUpdate
 from app.schemas.package import PackageRead
-from app.services.notification_service import NotificationService
+from app.services.notification_service import NotificationService, combine_update_message, describe_submission_progress, describe_workflow_update
 from app.services.settings_service import SettingsService
 
 router = APIRouter(prefix="/external", tags=["external automation"])
@@ -40,12 +40,17 @@ def update_workflow(workflow_number: str, data: ExternalWorkflowUpdate, db: Sess
         notifications.create_submission_progress_update(
             package_id=item.id,
             workflow_number=workflow_number, document_number=item.document_number,
-            message=data.message or f"Submission progress updated for {item.document_number}.",
+            message=combine_update_message(data.message, describe_submission_progress(data.submission_progress)),
         )
     if data.feedback is not None or data.feedback_status is not None or data.terminate_workflow is not None:
         notifications.create_workflow_feedback_update(
             package_id=item.id,
             workflow_number=workflow_number, document_number=item.document_number,
-            message=data.message or ("Workflow terminated." if data.terminate_workflow else f"Workflow feedback updated for {item.document_number}."),
+            message=combine_update_message(data.message, describe_workflow_update(
+                feedback_status=data.feedback_status,
+                feedback=data.feedback,
+                terminate_workflow=data.terminate_workflow,
+                status_labels=config.feedback_status_labels,
+            )),
         )
     return item

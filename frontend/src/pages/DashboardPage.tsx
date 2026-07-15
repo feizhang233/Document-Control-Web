@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
-import { ArrowRight, CheckCircle2, Clock3, FileCheck2, Files, History, Send, TrendingUp } from 'lucide-react'
+import { ArrowRight, CheckCircle2, Clock3, FileCheck2, Files, History, ListChecks, MessageSquareText, Send, TrendingUp } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { notificationsApi, packagesApi, settingsApi } from '../lib/api'
 import { getEffectiveFeedbackStatus } from '../components/packages/FeedbackStatus'
-import { feedbackStatusLabels, feedbackSteps, submissionSteps, type FeedbackStatusCode } from '../types/package'
+import { feedbackStatusLabels, feedbackSteps, submissionSteps, type FeedbackStatusCode, type WorkflowNotification } from '../types/package'
 
 const defaultColors:Record<FeedbackStatusCode,string>={A:'#21815d',B:'#9b6816',C:'#b13f4c',P:'#4267bd'}
 
@@ -35,7 +35,15 @@ export function DashboardPage() {
   const overviewGradient=items.length?`conic-gradient(${overviewRows.map(row=>{const start=overviewOffset;overviewOffset+=row.count/items.length*100;return `${row.color} ${start}% ${overviewOffset}%`}).join(',')})`:'#e7ebf1'
   const pending=items.filter(item=>!item.is_abandoned&&!currentSubmissionSteps.every(step=>item.submission_progress[step])).sort((left,right)=>completedSteps(right,currentSubmissionSteps)-completedSteps(left,currentSubmissionSteps)).slice(0,6)
   const today=new Date()
-  const todayChanges=(notifications?.items||[]).filter(item=>new Date(item.created_at).toDateString()===today.toDateString()).filter((item,index,array)=>array.findIndex(candidate=>(candidate.workflow_number||candidate.document_number)===(item.workflow_number||item.document_number))===index).slice(0,6)
+  const todayChanges=(notifications?.items||[]).filter(item=>new Date(item.created_at).toDateString()===today.toDateString())
+  const submissionChanges=todayChanges.filter(item=>item.notification_type==='submission_progress').slice(0,3)
+  const workflowChanges=todayChanges.filter(item=>item.notification_type!=='submission_progress').slice(0,3)
+  const workflowChangeDetail=(notification:WorkflowNotification)=>{
+    if(/\b[ABCP]\s*[–-]\s*/.test(notification.message)||/terminat|reopen/i.test(notification.message))return notification.message
+    const current=items.find(item=>item.id===notification.package_id)||items.find(item=>item.workflow_number===notification.workflow_number&&item.document_number===notification.document_number)
+    if(!current)return notification.message
+    return currentFeedbackReviewers.map(reviewer=>{const code=current.feedback_status[reviewer]||'P';return `${reviewer} approval: ${code} – ${statusLabels[code]}`}).join(' · ')
+  }
   const statusCounts={A:0,B:0,C:0,P:0,T:0}
   for(const item of items)statusCounts[getEffectiveFeedbackStatus(item,currentFeedbackReviewers,statusLabels).code]+=1
   const statusRows=(['A','B','C','P','T'] as const).map(code=>({code,label:code==='T'?'Terminated':statusLabels[code],count:statusCounts[code],color:code==='T'?'#737b88':statusColors[code]}))
@@ -52,8 +60,11 @@ export function DashboardPage() {
     </div>
 
     <div className="dashboard-row dashboard-row-primary">
-      <section className="panel dashboard-panel"><div className="panel-heading"><div><h2>Documents to complete</h2><p>Outstanding Submission Progress work</p></div><Link to="/documents/all">View all <ArrowRight size={14}/></Link></div><div className="dashboard-list">{pending.map(item=>{const done=completedSteps(item,currentSubmissionSteps);const next=currentSubmissionSteps.find(step=>!item.submission_progress[step]);return <Link to="/documents/all" key={item.id}><div className="activity-icon"><Clock3/></div><div><strong>{item.document_number}</strong><span>{item.document_title||item.document_type} · Next: {next||'Complete'}</span><div className="mini-progress"><i style={{width:`${done/currentSubmissionSteps.length*100}%`}}/></div></div><div className="activity-meta"><strong>{done}/{currentSubmissionSteps.length}</strong><span>steps</span></div></Link>})}{!pending.length&&<div className="mini-empty"><CheckCircle2/>All documents have completed Submission Progress.</div>}</div></section>
-      <section className="panel dashboard-panel"><div className="panel-heading"><div><h2>Workflow changes today</h2><p>Updates received since midnight</p></div><span className="trend"><History size={14}/> {todayChanges.length} today</span></div><div className="dashboard-list workflow-change-list">{todayChanges.map(item=><Link to="/workflow" key={item.id}><div className="activity-icon green"><History/></div><div><strong>{item.workflow_number||'Workflow not assigned'}</strong><span>{item.message}</span></div><div className="activity-meta"><strong>{new Date(item.created_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</strong><span>{item.document_number||'document'}</span></div></Link>)}{!todayChanges.length&&<div className="mini-empty"><History/>No workflow changes recorded today.</div>}</div></section>
+      <section className="panel dashboard-panel documents-complete-panel"><div className="panel-heading"><div><h2>Documents to complete</h2><p>Outstanding Submission Progress work</p></div><Link to="/documents/all">View all <ArrowRight size={14}/></Link></div><div className="dashboard-list">{pending.map(item=>{const done=completedSteps(item,currentSubmissionSteps);const next=currentSubmissionSteps.find(step=>!item.submission_progress[step]);return <Link to="/documents/all" key={item.id}><div className="activity-icon"><Clock3/></div><div><strong>{item.document_number}</strong><span>{item.document_title||item.document_type} · Next: {next||'Complete'}</span><div className="mini-progress"><i style={{width:`${done/currentSubmissionSteps.length*100}%`}}/></div></div><div className="activity-meta"><strong>{done}/{currentSubmissionSteps.length}</strong><span>steps</span></div></Link>})}{!pending.length&&<div className="mini-empty"><CheckCircle2/>All documents have completed Submission Progress.</div>}</div></section>
+      <div className="dashboard-change-column">
+        <ChangePanel title="Progress Submission Change" subtitle="Submission updates received since midnight" items={submissionChanges} icon={<ListChecks/>} empty="No submission progress changes recorded today." detail={item=>item.message}/>
+        <ChangePanel title="Workflow Update Change" subtitle="Feedback updates received since midnight" items={workflowChanges} icon={<MessageSquareText/>} empty="No workflow feedback changes recorded today." detail={workflowChangeDetail}/>
+      </div>
     </div>
 
     <div className="dashboard-row dashboard-row-secondary">
@@ -65,3 +76,11 @@ export function DashboardPage() {
 
 function completedSteps(item:{submission_progress:Record<string,boolean>},steps:readonly string[]){return steps.filter(step=>item.submission_progress[step]).length}
 function Metric({icon,tone,label,value,note}:{icon:React.ReactNode;tone:string;label:string;value:number;note:string}){return <div className="metric-card"><div className={`metric-icon ${tone}`}>{icon}</div><div><span>{label}</span><strong>{value}</strong><small>{note}</small></div></div>}
+function notificationDestination(item:WorkflowNotification){
+  const focus=item.document_number||item.workflow_number
+  const params=new URLSearchParams({...(focus?{focus}:{}),notification:String(item.id),...(item.package_id?{package:String(item.package_id)}:{})})
+  return{pathname:item.notification_type==='submission_progress'?'/documents/all':'/workflow',search:`?${params}`}
+}
+function ChangePanel({title,subtitle,items,icon,empty,detail}:{title:string;subtitle:string;items:WorkflowNotification[];icon:React.ReactNode;empty:string;detail:(item:WorkflowNotification)=>string}){
+  return <section className="panel dashboard-panel dashboard-change-panel"><div className="panel-heading"><div><h2>{title}</h2><p>{subtitle}</p></div><span className="trend"><History size={14}/> {items.length} today</span></div><div className="dashboard-list workflow-change-list">{items.map(item=><Link to={notificationDestination(item)} state={{notificationFocusNonce:item.id}} key={item.id}><div className="activity-icon green">{icon}</div><div><strong>{item.workflow_number||item.document_number||'Workflow not assigned'}</strong><span>{detail(item)}</span></div><div className="activity-meta"><strong>{new Date(item.created_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</strong><span>{item.document_number||'document'}</span></div></Link>)}{!items.length&&<div className="mini-empty"><History/>{empty}</div>}</div></section>
+}

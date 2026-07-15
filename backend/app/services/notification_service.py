@@ -2,6 +2,27 @@ from sqlalchemy import delete, func, select, update
 from sqlalchemy.orm import Session
 from app.models.notification import Notification
 
+DEFAULT_STATUS_LABELS = {"A":"Approved", "B":"Approved with comments", "C":"Rejected", "P":"Pending"}
+
+def describe_submission_progress(changes: dict[str, bool]) -> str:
+    details = [f"{step} {'completed' if completed else 'reopened'}" for step, completed in changes.items()]
+    return " · ".join(details) or "Submission progress updated"
+
+def describe_workflow_update(*, feedback_status: dict[str, str] | None = None, feedback: dict[str, bool] | None = None, terminate_workflow: bool | None = None, status_labels: dict[str, str] | None = None) -> str:
+    labels = status_labels or DEFAULT_STATUS_LABELS
+    status_updates = feedback_status or {}
+    details = [f"{reviewer} approval: {code} – {labels.get(code, code)}" for reviewer, code in status_updates.items()]
+    for reviewer, received in (feedback or {}).items():
+        if reviewer in status_updates: continue
+        if reviewer.lower() == "terminate": details.append("Workflow terminated" if received else "Workflow reopened")
+        else: details.append(f"{reviewer} feedback {'received' if received else 'reopened'}")
+    if terminate_workflow is not None: details.append("Workflow terminated" if terminate_workflow else "Workflow reopened")
+    return " · ".join(dict.fromkeys(details)) or "Workflow feedback updated"
+
+def combine_update_message(custom_message: str | None, details: str) -> str:
+    message = f"{custom_message.strip()} · {details}" if custom_message and custom_message.strip() else details
+    return message[:500]
+
 class NotificationService:
     def __init__(self, db: Session): self.db = db
     def _create_update(self, *, notification_type: str, title: str, package_id: int, workflow_number: str | None, document_number: str, message: str):

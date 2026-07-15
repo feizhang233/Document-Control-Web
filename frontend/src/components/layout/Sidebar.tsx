@@ -14,8 +14,9 @@ export function Sidebar({ mobileOpen, collapsed, onClose, onToggleCollapsed }: {
   return <>
     {mobileOpen && <div className="sidebar-backdrop" onClick={onClose} />}
     <aside className={`sidebar ${mobileOpen ? 'open' : ''} ${collapsed ? 'desktop-collapsed' : ''}`}>
-      <div className="brand"><div className="brand-mark">D</div><div className="brand-copy"><strong>DocFlow</strong><span>Project Controls</span></div><button className="sidebar-collapse-toggle" onClick={onToggleCollapsed} aria-label={collapsed?'Expand navigation':'Collapse navigation'} title={collapsed?'Expand navigation':'Collapse navigation'}><Menu size={19}/></button><button className="sidebar-close" onClick={onClose} aria-label="Close navigation"><X size={18}/></button></div>
+      <div className="brand"><div className="brand-mark">D</div><div className="brand-copy"><strong>DocFlow</strong><span>Project Controls</span></div><button className="sidebar-close" onClick={onClose} aria-label="Close navigation"><X size={18}/></button></div>
       <nav className="nav-list">
+        <button className="sidebar-collapse-toggle" onClick={onToggleCollapsed} aria-label={collapsed?'Expand navigation':'Collapse navigation'} title={collapsed?'Expand navigation':'Collapse navigation'}><Menu size={19}/></button>
         <NavLink to="/" end className="nav-item" onClick={onClose} aria-label="Dashboard" title={collapsed?'Dashboard':undefined}><BarChart3 size={18}/><span>Dashboard</span></NavLink>
         <div className={`nav-section ${documentsOpen?'expanded':'collapsed'}`}>
           <div className={`nav-parent-row ${documentsActive?'active':''}`}><NavLink to="/documents/week" className="nav-parent" onClick={onClose} aria-label="Documents" title={collapsed?'Documents':undefined}><FileText size={18}/><span>Documents</span></NavLink><button type="button" className="nav-collapse-button" aria-label={documentsOpen?'Collapse Documents':'Expand Documents'} aria-expanded={documentsOpen} onClick={()=>setDocumentsOpen(open=>!open)}><ChevronDown size={15}/></button></div>
