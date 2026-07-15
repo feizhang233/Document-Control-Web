@@ -1,4 +1,4 @@
-import { BarChart3, ChevronDown, FileText, PanelLeftClose, PanelLeftOpen, Repeat2, Send, Settings, X } from 'lucide-react'
+import { BarChart3, ChevronDown, FileText, Menu, Repeat2, Send, Settings, X } from 'lucide-react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { useState } from 'react'
 
@@ -14,7 +14,7 @@ export function Sidebar({ mobileOpen, collapsed, onClose, onToggleCollapsed }: {
   return <>
     {mobileOpen && <div className="sidebar-backdrop" onClick={onClose} />}
     <aside className={`sidebar ${mobileOpen ? 'open' : ''} ${collapsed ? 'desktop-collapsed' : ''}`}>
-      <div className="brand"><div className="brand-mark">D</div><div className="brand-copy"><strong>DocFlow</strong><span>Project Controls</span></div><button className="sidebar-collapse-toggle" onClick={onToggleCollapsed} aria-label={collapsed?'Expand navigation':'Collapse navigation'} title={collapsed?'Expand navigation':'Collapse navigation'}>{collapsed?<PanelLeftOpen size={17}/>:<PanelLeftClose size={17}/>}</button><button className="sidebar-close" onClick={onClose} aria-label="Close navigation"><X size={18}/></button></div>
+      <div className="brand"><div className="brand-mark">D</div><div className="brand-copy"><strong>DocFlow</strong><span>Project Controls</span></div><button className="sidebar-collapse-toggle" onClick={onToggleCollapsed} aria-label={collapsed?'Expand navigation':'Collapse navigation'} title={collapsed?'Expand navigation':'Collapse navigation'}><Menu size={19}/></button><button className="sidebar-close" onClick={onClose} aria-label="Close navigation"><X size={18}/></button></div>
       <nav className="nav-list">
         <NavLink to="/" end className="nav-item" onClick={onClose} aria-label="Dashboard" title={collapsed?'Dashboard':undefined}><BarChart3 size={18}/><span>Dashboard</span></NavLink>
         <div className={`nav-section ${documentsOpen?'expanded':'collapsed'}`}>
