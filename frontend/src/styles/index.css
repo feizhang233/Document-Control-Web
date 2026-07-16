@@ -122,3 +122,12 @@
 .dashboard-row-primary{grid-template-columns:minmax(0,1.25fr) minmax(420px,1fr);align-items:stretch}.documents-complete-panel{height:100%}.documents-complete-panel .dashboard-list{flex:1}.dashboard-change-column{min-width:0;display:grid;grid-template-rows:1fr 1fr;gap:16px}.dashboard-change-panel{min-height:0}.dashboard-change-panel .panel-heading{height:62px;flex:none}.dashboard-change-panel .dashboard-list{min-height:132px;flex:1}.dashboard-change-panel .dashboard-list>a{min-height:62px}.dashboard-change-panel .dashboard-list .mini-empty{height:132px;min-height:132px}.dashboard-change-panel .activity-icon{flex:none}.dashboard-change-panel .activity-icon svg{width:15px}
 @media(max-width:1100px){.dashboard-row-primary{grid-template-columns:1fr}.dashboard-change-column{grid-template-columns:1fr 1fr;grid-template-rows:auto}.documents-complete-panel .dashboard-list{min-height:auto}}
 @media(max-width:700px){.dashboard-change-column{grid-template-columns:1fr}.dashboard-change-panel .workflow-change-list .activity-meta{display:none}}
+
+/* Scrollable dashboard change feeds and a full-height notification rail. */
+.dashboard-change-panel .dashboard-list{height:248px;min-height:248px;flex:none;overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable}
+.dashboard-change-panel .dashboard-list .mini-empty{height:248px;min-height:248px}
+.notification-popover{position:fixed;right:0;left:auto;top:65px;bottom:0;width:460px;max-width:calc(100vw - 20px);border-radius:12px 0 0 0;display:flex;flex-direction:column;animation:notificationRailIn .22s ease-out}
+.notification-popover>header,.notification-popover>footer{flex:none}
+.notification-list{flex:1;min-height:0;max-height:none;overflow-y:auto;overscroll-behavior:contain}
+@keyframes notificationRailIn{from{transform:translateX(24px);opacity:.7}}
+@media(max-width:760px){.notification-popover{right:0;left:0;top:58px;bottom:0;width:auto;max-width:none;border-radius:12px 12px 0 0}}
