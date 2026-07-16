@@ -21,8 +21,8 @@ export function AppShell() {
           <button className="icon-button menu-button" onClick={() => setMobileOpen(true)} aria-label="Open navigation"><Menu size={19} /></button>
           <div className="topbar-context"><span className="status-dot" /> Systems operational</div>
           <div className="topbar-actions">
-            <NotificationsPopover open={notificationsOpen} onToggle={() => setNotificationsOpen(value=>!value)} onClose={() => setNotificationsOpen(false)} />
             <div className="user-chip"><div className="avatar">ZF</div><div><strong>Zhang Fei</strong><span>Document Controller</span></div></div>
+            <NotificationsPopover open={notificationsOpen} onToggle={() => setNotificationsOpen(value=>!value)} onClose={() => setNotificationsOpen(false)} />
           </div>
         </header>
         <main className="page-content"><Suspense fallback={<div className="state-panel">Loading…</div>}><Outlet /></Suspense></main>

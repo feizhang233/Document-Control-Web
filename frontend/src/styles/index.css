@@ -131,3 +131,21 @@
 .notification-list{flex:1;min-height:0;max-height:none;overflow-y:auto;overscroll-behavior:contain}
 @keyframes notificationRailIn{from{transform:translateX(24px);opacity:.7}}
 @media(max-width:760px){.notification-popover{right:0;left:0;top:58px;bottom:0;width:auto;max-width:none;border-radius:12px 12px 0 0}}
+
+/* Topbar action order and roomier notification typography. */
+.topbar-actions .user-chip{padding-left:0;padding-right:14px;border-left:0;border-right:1px solid var(--border)}
+.notification-popover{width:560px}
+.notification-popover>header{padding:19px 22px}
+.notification-popover>header strong{font-size:18px}
+.notification-popover>header span{font-size:12px;margin-top:4px}
+.notification-popover>header button{font-size:12px;gap:6px;padding:6px}
+.notification-popover>header svg{width:16px;height:16px}
+.notification-group>.notification-group-heading{height:42px;padding:0 20px}
+.notification-group-heading>span{font-size:11px;gap:8px}
+.notification-group-heading small{font-size:10px}
+.notification-group>button:not(.notification-group-heading){padding:16px 20px;grid-template-columns:9px 1fr;gap:11px}
+.notification-list strong{font-size:14px}
+.notification-list p{font-size:13px;line-height:1.55;margin:6px 0}
+.notification-list span{font-size:11px}
+.notification-popover>footer{padding:12px 20px;font-size:10px}
+@media(max-width:760px){.notification-popover{width:auto}.topbar-actions .user-chip{padding-right:10px}}
