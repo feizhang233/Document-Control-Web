@@ -33,11 +33,11 @@ export function DashboardPage() {
   ]
   let overviewOffset=0
   const overviewGradient=items.length?`conic-gradient(${overviewRows.map(row=>{const start=overviewOffset;overviewOffset+=row.count/items.length*100;return `${row.color} ${start}% ${overviewOffset}%`}).join(',')})`:'#e7ebf1'
-  const pending=items.filter(item=>!item.is_abandoned&&!currentSubmissionSteps.every(step=>item.submission_progress[step])).sort((left,right)=>completedSteps(right,currentSubmissionSteps)-completedSteps(left,currentSubmissionSteps)).slice(0,6)
+  const pending=items.filter(item=>!item.is_abandoned&&!currentSubmissionSteps.every(step=>item.submission_progress[step])).sort((left,right)=>completedSteps(right,currentSubmissionSteps)-completedSteps(left,currentSubmissionSteps)).slice(0,8)
   const today=new Date()
   const todayChanges=(notifications?.items||[]).filter(item=>new Date(item.created_at).toDateString()===today.toDateString())
-  const submissionChanges=todayChanges.filter(item=>item.notification_type==='submission_progress').slice(0,3)
-  const workflowChanges=todayChanges.filter(item=>item.notification_type!=='submission_progress').slice(0,3)
+  const submissionChanges=todayChanges.filter(item=>item.notification_type==='submission_progress').slice(0,4)
+  const workflowChanges=todayChanges.filter(item=>item.notification_type!=='submission_progress').slice(0,4)
   const workflowChangeDetail=(notification:WorkflowNotification)=>{
     if(/\b[ABCP]\s*[–-]\s*/.test(notification.message)||/terminat|reopen/i.test(notification.message))return notification.message
     const current=items.find(item=>item.id===notification.package_id)||items.find(item=>item.workflow_number===notification.workflow_number&&item.document_number===notification.document_number)
