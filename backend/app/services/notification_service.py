@@ -47,9 +47,14 @@ class NotificationService:
             title=f"Workflow feedback · {workflow_number or document_number}",
             package_id=package_id, workflow_number=workflow_number, document_number=document_number, message=message,
         )
-    def list(self, limit: int = 30):
-        items = list(self.db.scalars(select(Notification).order_by(Notification.created_at.desc(), Notification.id.desc()).limit(limit)))
-        unread = self.db.scalar(select(func.count()).select_from(Notification).where(Notification.is_read.is_(False))) or 0
+    def list(self, limit: int = 30, package_id: int | None = None, notification_type: str | None = None):
+        filters = []
+        if package_id is not None: filters.append(Notification.package_id == package_id)
+        if notification_type is not None: filters.append(Notification.notification_type == notification_type)
+        items_query = select(Notification).where(*filters).order_by(Notification.created_at.desc(), Notification.id.desc()).limit(limit)
+        unread_query = select(func.count()).select_from(Notification).where(Notification.is_read.is_(False), *filters)
+        items = list(self.db.scalars(items_query))
+        unread = self.db.scalar(unread_query) or 0
         return items, unread
     def mark_read(self, notification_id: int):
         item = self.db.get(Notification, notification_id)

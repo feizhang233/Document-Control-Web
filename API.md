@@ -87,7 +87,7 @@ Responses:
 
 | Method | Endpoint | Description |
 | --- | --- | --- |
-| `GET` | `/api/notifications?limit=30` | List newest notifications and unread count |
+| `GET` | `/api/notifications?limit=30` | List newest notifications and unread count; optionally filter by `package_id` and `notification_type` |
 | `PATCH` | `/api/notifications/{id}/read` | Mark one notification as read |
 | `PATCH` | `/api/notifications/read-all` | Mark every notification as read |
 

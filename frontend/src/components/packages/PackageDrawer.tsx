@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Ban, Calendar, FileStack, Hash, OctagonX, Paperclip, Save, UserRound, X } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import { format } from 'date-fns'
+import { Ban, Calendar, FileStack, Hash, MessageSquareText, OctagonX, Paperclip, RefreshCw, Save, UserRound, X } from 'lucide-react'
+import { getApiError, notificationsApi } from '../../lib/api'
 import type { ColumnConfig, Package, PackageInput, WorkflowConfig } from '../../types/package'
 import { StatusBadge } from '../common/StatusBadge'
 import { FeedbackStatus } from './FeedbackStatus'
@@ -8,6 +11,12 @@ import { SubmissionSlider } from './SubmissionSlider'
 export function PackageDrawer({item,configs,workflowConfig,saving,onUpdate,onClose}:{item:Package|null;configs:ColumnConfig[];workflowConfig:WorkflowConfig;saving:boolean;onUpdate:(data:Partial<PackageInput>)=>void;onClose:()=>void}){
   const [notes,setNotes]=useState('')
   const [sliderValue,setSliderValue]=useState(0)
+  const feedbackQuery=useQuery({
+    queryKey:['notifications','workflow-feedback',item?.id],
+    queryFn:()=>notificationsApi.listWorkflowFeedback(item!.id),
+    enabled:!!item,
+    refetchInterval:item?30_000:false,
+  })
   useEffect(()=>{setNotes(item?.notes||'');setSliderValue(item?workflowConfig.submission_steps.filter(step=>item.submission_progress[step]).length:0)},[item,workflowConfig.submission_steps])
   if(!item)return null
   const typeColor=configs.find(config=>config.field_name==='document_type')?.option_colors[item.document_type]
@@ -21,6 +30,16 @@ export function PackageDrawer({item,configs,workflowConfig,saving,onUpdate,onClo
       <div className="section-heading"><h4>Submission progress</h4><span>{item.is_abandoned?'Stopped':'Drag to update'}</span></div>
       <SubmissionSlider steps={workflowConfig.submission_steps} value={sliderValue} onChange={setSliderValue} onCommit={commitSlider} disabled={item.is_abandoned||saving}/>
     </section>
-    <section className="drawer-section feedback-status-section"><div className="section-heading"><h4>External feedback</h4><span>Feedback Status</span></div><FeedbackStatus item={item} reviewers={workflowConfig.feedback_reviewers} statusLabels={workflowConfig.feedback_status_labels} statusColors={workflowConfig.feedback_status_colors}/></section>
+    <section className="drawer-section feedback-status-section">
+      <div className="section-heading"><h4>External feedback</h4><span>Feedback Status</span></div>
+      <FeedbackStatus item={item} reviewers={workflowConfig.feedback_reviewers} statusLabels={workflowConfig.feedback_status_labels} statusColors={workflowConfig.feedback_status_colors}/>
+      <div className="workflow-feedback-response">
+        <div className="workflow-feedback-response-heading"><span><MessageSquareText/>Workflow response</span>{feedbackQuery.isFetching&&!feedbackQuery.isLoading&&<RefreshCw className="spin"/>}</div>
+        {feedbackQuery.isLoading?<div className="workflow-feedback-state"><RefreshCw className="spin"/>Loading feedback…</div>
+          :feedbackQuery.isError?<div className="workflow-feedback-state error">{getApiError(feedbackQuery.error)} <button type="button" onClick={()=>feedbackQuery.refetch()}>Retry</button></div>
+          :!feedbackQuery.data?.items.length?<div className="workflow-feedback-state">No workflow feedback received yet.</div>
+          :<div className="workflow-feedback-list">{feedbackQuery.data.items.map(feedback=><article key={feedback.id}><p>{feedback.message}</p><time dateTime={feedback.created_at}>{format(new Date(feedback.created_at),'MMM d, yyyy · HH:mm')}</time></article>)}</div>}
+      </div>
+    </section>
   </div></aside></div>
 }

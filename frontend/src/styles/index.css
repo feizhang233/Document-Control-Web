@@ -149,3 +149,18 @@
 .notification-list span{font-size:11px}
 .notification-popover>footer{padding:12px 20px;font-size:10px}
 @media(max-width:760px){.notification-popover{width:auto}.topbar-actions .user-chip{padding-right:10px}}
+
+/* Workflow responses in the document details drawer. */
+.workflow-feedback-response{margin-top:15px;padding-top:14px;border-top:1px solid #e8ecf2}
+.workflow-feedback-response-heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;color:#53627a}
+.workflow-feedback-response-heading>span{display:flex;align-items:center;gap:6px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.workflow-feedback-response-heading svg{width:14px;height:14px;color:#4c70cd}
+.workflow-feedback-response-heading>svg{color:#8a96a8}
+.workflow-feedback-list{display:flex;flex-direction:column;gap:7px;max-height:260px;overflow-y:auto;overscroll-behavior:contain}
+.workflow-feedback-list article{padding:10px 11px;border:1px solid #e2e7ef;border-radius:8px;background:#f7f9fc}
+.workflow-feedback-list p{margin:0;color:#34435c;font-size:11px;line-height:1.5;overflow-wrap:anywhere}
+.workflow-feedback-list time{display:block;margin-top:6px;color:#8a96a8;font-size:9px}
+.workflow-feedback-state{min-height:48px;padding:11px;border:1px dashed #dce2eb;border-radius:8px;background:#fafbfc;color:#8290a3;font-size:10px;display:flex;align-items:center;gap:7px}
+.workflow-feedback-state svg{width:14px}
+.workflow-feedback-state.error{color:#ad4550;border-color:#edcdd1;background:#fffafb}
+.workflow-feedback-state button{margin-left:auto;border:0;background:transparent;color:#315fc7;font-size:10px;font-weight:700}

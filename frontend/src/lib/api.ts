@@ -49,6 +49,7 @@ export const metadataApi = {
 
 export const notificationsApi = {
   list: async (limit=30) => (await client.get<NotificationList>('/notifications',{params:{limit}})).data,
+  listWorkflowFeedback: async (packageId:number,limit=20) => (await client.get<NotificationList>('/notifications',{params:{limit,package_id:packageId,notification_type:'workflow_feedback'}})).data,
   markRead: async (id: number) => client.patch(`/notifications/${id}/read`),
   markAllRead: async () => client.patch('/notifications/read-all'),
   clear: async () => client.delete('/notifications'),

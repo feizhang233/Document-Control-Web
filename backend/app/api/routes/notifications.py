@@ -1,3 +1,4 @@
+from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.orm import Session
 from app.db.session import get_db
@@ -7,8 +8,13 @@ from app.services.notification_service import NotificationService
 router = APIRouter(prefix="/notifications", tags=["notifications"])
 
 @router.get("", response_model=NotificationList)
-def list_notifications(limit: int = Query(30, ge=1, le=100), db: Session = Depends(get_db)):
-    items, unread = NotificationService(db).list(limit)
+def list_notifications(
+    limit: int = Query(30, ge=1, le=100),
+    package_id: int | None = Query(default=None, ge=1),
+    notification_type: Literal["submission_progress", "workflow_feedback"] | None = None,
+    db: Session = Depends(get_db),
+):
+    items, unread = NotificationService(db).list(limit, package_id, notification_type)
     return NotificationList(items=items, unread_count=unread)
 
 @router.patch("/read-all", status_code=204)

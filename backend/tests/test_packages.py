@@ -198,7 +198,7 @@ def test_blank_document_number_creates_draft(client):
     assert response.json()["document_number"].startswith("DRAFT-")
 
 def test_external_workflow_update_creates_notification(client):
-    client.post("/api/packages", json=payload())
+    created = client.post("/api/packages", json=payload()).json()
     denied = client.patch("/api/external/workflows/WF-001", headers={"X-API-Key":"wrong"}, json={"status":"Completed"})
     assert denied.status_code == 401
     updated = client.patch(
@@ -216,6 +216,16 @@ def test_external_workflow_update_creates_notification(client):
     assert notifications["items"][0]["notification_type"] == "workflow_feedback"
     assert notifications["items"][0]["workflow_number"] == "WF-001"
     assert "UTIBER approval: B – Approved with comments" in notifications["items"][0]["message"]
+    progress = dict(updated.json()["submission_progress"])
+    progress[SUBMISSION_STEPS[0]] = True
+    assert client.patch(f"/api/packages/{created['id']}", json={"submission_progress":progress}).status_code == 200
+    feedback = client.get("/api/notifications", params={
+        "package_id":created["id"],
+        "notification_type":"workflow_feedback",
+    })
+    assert feedback.status_code == 200
+    assert len(feedback.json()["items"]) == 1
+    assert feedback.json()["items"][0]["message"].startswith("Daily sync completed the workflow.")
     assert client.patch("/api/notifications/read-all").status_code == 204
     assert client.get("/api/notifications").json()["unread_count"] == 0
     assert client.delete("/api/notifications").status_code == 204
