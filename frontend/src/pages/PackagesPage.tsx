@@ -29,7 +29,7 @@ export function PackagesPage({ kind }: { kind: PageKind }) {
   const [discipline, setDiscipline] = useState('')
   const [transmittalPrefix, setTransmittalPrefix] = useState('')
   const [sortBy, setSortBy] = useState(kind === 'workflow' ? 'workflow_number' : kind === 'transmittal' ? 'transmittal_number' : 'document_date')
-  const [sortOrder, setSortOrder] = useState<'asc'|'desc'>(kind === 'transmittal' ? 'asc' : 'desc')
+  const [sortOrder, setSortOrder] = useState<'asc'|'desc'>('desc')
   const [selected, setSelected] = useState<Package|null>(null)
   const [editing, setEditing] = useState<Package|null>(null)
   const [editorOpen, setEditorOpen] = useState(false)
@@ -79,7 +79,7 @@ export function PackagesPage({ kind }: { kind: PageKind }) {
   const totalPages=Math.max(1,Math.ceil((query.data?.total||0)/pageSize))
   useEffect(()=>{
     setSortBy(kind==='workflow'?'workflow_number':kind==='transmittal'?'transmittal_number':'document_date')
-    setSortOrder(kind==='transmittal'?'asc':'desc')
+    setSortOrder('desc')
     setTransmittalPrefix('')
   },[kind])
   useEffect(()=>setPage(1),[period,search,discipline,transmittalPrefix,sortBy,sortOrder,pageSize])
